@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Парсер протоколов из даташитов</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js для парсинга PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Docxtemplater для создания DOCX -->
+    <script src="https://unpkg.com/docxtemplater@3.42.0/build/docxtemplater.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.4/dist/pizzip-utils.js"></script>
+    <!-- JSZip для работы с zip архивами -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- FileSaver для сохранения файлов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-network-wired"></i> Парсер протоколов оборудования</h1>
+            <p class="subtitle">Загрузите даташит в формате PDF для автоматического анализа протоколов</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="upload-area" id="dropArea">
+                <i class="fas fa-file-pdf fa-3x"></i>
+                <h3>Перетащите PDF файл сюда</h3>
+                <p>или нажмите для выбора файла</p>
+                <input type="file" id="fileInput" accept=".pdf,.txt" hidden>
+                <button class="btn" id="selectFileBtn">Выбрать файл</button>
+                <p class="hint">Поддерживаются PDF и текстовые файлы</p>
+                <div class="loading hidden" id="pdfLoading">
+                    <div class="spinner"></div>
+                    <p>Идет чтение PDF... <span id="progressText">0%</span></p>
+                </div>
+            </div>
+
+            <div class="text-input-section">
+                <h3>Или вставьте текст даташита вручную:</h3>
+                <textarea id="manualText" placeholder="Вставьте сюда текст из даташита... Например: 'Устройство поддерживает DHCP-сервер, OSPF v2/v3, RIP, а также протокол SNMP для мониторинга.'"></textarea>
+                <button class="btn" id="parseTextBtn">Проанализировать текст</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <h2><i class="fas fa-list-check"></i> Найденные протоколы</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <h4>Найдено</h4>
+                    <p class="stat-number" id="foundCount">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Всего в словаре</h4>
+                    <p class="stat-number" id="totalCount">15</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Процент совпадений</h4>
+                    <p class="stat-number" id="matchPercent">0%</p>
+                </div>
+            </div>
+            
+            <div class="protocols-grid" id="protocolsGrid">
+                <!-- Протоколы будут добавляться здесь -->
+            </div>
+            
+            <div class="export-section">
+                <button class="btn export-btn" id="exportTxtBtn">
+                    <i class="fas fa-file-alt"></i> Экспорт в TXT
+                </button>
+                <button class="btn export-btn" id="exportDocxBtn">
+                    <i class="fas fa-file-word"></i> Экспорт в DOCX
+                </button>
+                <button class="btn export-btn" id="exportHtmlBtn">
+                    <i class="fas fa-file-code"></i> Экспорт в HTML
+                </button>
+                <button class="btn" id="openDocxModalBtn">
+                    <i class="fas fa-cogs"></i> Настроить и сгенерировать DOCX
+                </button>
+                <button class="btn secondary-btn" id="editDictBtn">
+                    <i class="fas fa-edit"></i> Редактировать словарь
+                </button>
+                <button class="btn export-btn" id="exportSimpleDocxBtn">
+                    <i class="fas fa-file-word"></i> Простой DOCX
+                </button>
+                 <button class="btn secondary-btn" id="resetAnalysisBtn">
+                     <i class="fas fa-redo"></i> Сбросить результаты
+                </button>
+            </div>
+        </div>
+
+        <!-- Секция для редактирования словаря (скрыта по умолчанию) -->
+        <div class="dictionary-section hidden" id="dictionarySection">
+            <h2><i class="fas fa-book"></i> Словарь протоколов</h2>
+            <p class="subtitle">Здесь можно добавлять ключевые слова для поиска протоколов</p>
+            
+            <div class="dictionary-list" id="dictionaryList">
+                <!-- Словарь будет добавляться здесь -->
+            </div>
+            
+            <div class="add-protocol">
+                <h3>Добавить новый протокол:</h3>
+                <div class="form-group">
+                    <input type="text" id="newProtocolName" placeholder="Название протокола (например: BGP)">
+                    <input type="text" id="newProtocolKeywords" placeholder="Ключевые слова через запятую (BGP, Border Gateway)">
+                    <button class="btn" id="addProtocolBtn">Добавить</button>
+                </div>
+            </div>
+            
+            <button class="btn secondary-btn" id="backToMainBtn">Вернуться к анализу</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для шаблона DOCX -->
+    <div class="modal hidden" id="templateModal">
+        <div class="modal-content">
+            <h3>Настройка шаблона отчета</h3>
+            <div class="form-group">
+                <label>Название оборудования:</label>
+                <input type="text" id="deviceName" placeholder="Например: Cisco Catalyst 2960-X">
+                
+                <label>Модель:</label>
+                <input type="text" id="deviceModel" placeholder="Например: WS-C2960X-24TS-L">
+                
+                <label>Производитель:</label>
+                <input type="text" id="deviceVendor" placeholder="Например: Cisco">
+                
+                <label>Дата тестирования:</label>
+                <input type="date" id="testDate" value="">
+                
+                <label>Комментарии:</label>
+                <textarea id="deviceComments" placeholder="Дополнительные заметки..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" id="generateDocxBtn">Сгенерировать DOCX</button>
+                <button class="btn secondary-btn" id="closeTemplateBtn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
