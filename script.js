@@ -5,14 +5,161 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 let protocols = [];
 let pdfText = '';
 
+// ==================== //
+// Daily Header Variables
+// ==================== //
+let filesAnalyzed = 0;
+
+// База советов для сетевых инженеров
+const networkTips = [
+    "Всегда проверяйте настройки VLAN перед подключением нового оборудования",
+    "Используйте SSH вместо Telnet для безопасного удаленного доступа",
+    "Регулярно обновляйте микропрограммы сетевого оборудования",
+    "Настройте NTP-сервер для синхронизации времени на всех устройствах",
+    "Используйте агрегацию каналов (LACP) для увеличения пропускной способности",
+    "Регулярно делайте резервные копии конфигураций сетевых устройств",
+    "Настройте мониторинг с помощью SNMP или протоколов потоков (NetFlow)",
+    "Используйте QoS для приоритизации важного трафика (VoIP, видеоконференции)",
+    "Всегда документируйте изменения в сетевой инфраструктуре",
+    "Проверяйте совместимость протоколов при обновлении оборудования",
+    "Используйте протокол STP/RSTP для предотвращения петель в сети",
+    "Настройте защиту от петель на коммутаторах (Loop Protection)",
+    "Регулярно анализируйте логи (Syslog) на предмет ошибок и атак",
+    "Используйте IPv6 даже если основной протокол - IPv4",
+    "Настройте аутентификацию по RADIUS/TACACS+ для централизованного управления доступом",
+    "Проверяйте загрузку CPU и памяти на критических сетевых устройствах",
+    "Используйте протоколы маршрутизации (OSPF, BGP) вместо статических маршрутов в крупных сетях",
+    "Настройте мониторинг температуры в серверных комнатах и ЦОД",
+    "Используйте VLAN для логического разделения сетей",
+    "Регулярно тестируйте процедуры восстановления после сбоев",
+    "Настройте мониторинг линков на предмет ошибок и потерь пакетов",
+    "Используйте протоколы резервирования (HSRP, VRRP) для отказоустойчивости шлюзов",
+    "Проверяйте безопасность паролей на всех сетевых устройствах",
+    "Настройте фильтрацию MAC-адресов на коммутаторах доступа",
+    "Используйте протокол 802.1X для контроля доступа к сети",
+    "Регулярно проводите аудит сетевой безопасности",
+    "Настройте мониторинг трафика для выявления аномалий",
+    "Используйте протоколы туннелирования (IPsec, GRE) для защищенных соединений",
+    "Проверяйте актуальность сертификатов SSL/TLS на веб-интерфейсах",
+    "Настройте ограничение скорости (Rate Limiting) для предотвращения DoS-атак"
+];
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     loadProtocols();
     initEventListeners();
     updateStats();
+    initDailyHeader();
+    updateFooterYear();
     
     document.getElementById('testDate').valueAsDate = new Date();
+    testFunctionality();
 });
+
+// ==================== //
+// Daily Header Functions
+// ==================== //
+
+// Функция для обновления даты и времени
+function updateDateTime() {
+    const now = new Date();
+    
+    // Форматируем дату
+    const dateOptions = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    const dateStr = now.toLocaleDateString('ru-RU', dateOptions);
+    
+    // Форматируем время
+    const timeStr = now.toLocaleTimeString('ru-RU', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    // Обновляем DOM
+    document.getElementById('currentDate').textContent = dateStr;
+    document.getElementById('currentTime').textContent = timeStr;
+    
+    // Обновляем счетчик проанализированных файлов
+    document.getElementById('filesAnalyzed').textContent = filesAnalyzed;
+}
+
+// Функция для получения совета дня (меняется раз в день)
+function getTipOfTheDay() {
+    const today = new Date().toDateString();
+    const savedTip = localStorage.getItem('tipOfTheDay');
+    const savedDate = localStorage.getItem('tipDate');
+    
+    // Если у нас уже есть совет на сегодня, используем его
+    if (savedTip && savedDate === today) {
+        return savedTip;
+    }
+    
+    // Иначе генерируем новый и сохраняем
+    const randomIndex = Math.floor(Math.random() * networkTips.length);
+    const newTip = networkTips[randomIndex];
+    
+    localStorage.setItem('tipOfTheDay', newTip);
+    localStorage.setItem('tipDate', today);
+    
+    return newTip;
+}
+
+// Функция для обновления совета
+function updateTip() {
+    const tipElement = document.getElementById('dailyTip');
+    const refreshBtn = document.getElementById('refreshTip');
+    
+    // Добавляем анимацию
+    refreshBtn.classList.add('refreshing');
+    tipElement.style.opacity = '0.5';
+    
+    // Через небольшую задержку показываем новый совет
+    setTimeout(() => {
+        const newTip = getTipOfTheDay();
+        tipElement.textContent = newTip;
+        tipElement.style.opacity = '1';
+        
+        // Убираем анимацию
+        setTimeout(() => {
+            refreshBtn.classList.remove('refreshing');
+        }, 500);
+    }, 300);
+}
+
+// Инициализация daily header
+function initDailyHeader() {
+    // Загружаем счетчик из localStorage
+    const savedCount = localStorage.getItem('filesAnalyzedCount');
+    if (savedCount) {
+        filesAnalyzed = parseInt(savedCount);
+    }
+    
+    // Обновляем дату и время каждую секунду
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // Загружаем совет дня
+    const dailyTip = getTipOfTheDay();
+    document.getElementById('dailyTip').textContent = dailyTip;
+    
+    // Обработчик для кнопки обновления совета
+    document.getElementById('refreshTip').addEventListener('click', updateTip);
+    
+    // Обновляем счетчик проанализированных файлов
+    document.getElementById('filesAnalyzed').textContent = filesAnalyzed;
+}
+
+// Функция для увеличения счетчика проанализированных файлов
+function incrementFilesAnalyzed() {
+    filesAnalyzed++;
+    localStorage.setItem('filesAnalyzedCount', filesAnalyzed);
+    updateDateTime(); // Обновляем отображение счетчика
+}
 
 // Загрузка протоколов из localStorage
 function loadProtocols() {
@@ -32,26 +179,32 @@ function loadProtocols() {
     } else {
         // Базовый словарь по умолчанию
         protocols = [
-            { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер', 'DHCP-клиент'] },
-            { id: 2, name: 'ICMP', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping', 'эхо-запрос'] },
-            { id: 3, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol', 'RIP v1', 'RIP v2'] },
-            { id: 4, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol'] },
-            { id: 5, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol'] },
-            { id: 6, name: 'OSPF', keywords: ['OSPF', 'Open Shortest Path First', 'OSPFv2', 'OSPFv3'] },
-            { id: 7, name: 'BGP', keywords: ['BGP', 'Border Gateway Protocol', 'BGP-4'] },
+            { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'] },
+            { id: 2, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping'] },
+            { id: 3, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'] },
+            { id: 4, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'] },
+            { id: 5, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'] },
+            { id: 6, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'] },
+            { id: 7, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'] },
             { id: 8, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
-            { id: 9, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', 'VLAN trunking'] },
-            { id: 10, name: 'STP', keywords: ['STP', 'Spanning Tree Protocol', 'RSTP', 'MSTP', '802.1D'] },
-            { id: 11, name: 'HTTP', keywords: ['HTTP', 'Hypertext Transfer Protocol'] },
-            { id: 12, name: 'HTTPS', keywords: ['HTTPS', 'HTTP Secure', 'SSL', 'TLS'] },
-            { id: 13, name: 'SSH', keywords: ['SSH', 'Secure Shell', 'SSH v2'] },
-            { id: 14, name: 'FTP', keywords: ['FTP', 'File Transfer Protocol'] },
-            { id: 15, name: 'TFTP', keywords: ['TFTP', 'Trivial File Transfer Protocol'] },
-            { id: 16, name: 'NTP', keywords: ['NTP', 'Network Time Protocol'] },
-            { id: 17, name: 'Syslog', keywords: ['Syslog', 'системный журнал'] },
-            { id: 18, name: 'QoS', keywords: ['QoS', 'Quality of Service', 'качество обслуживания'] },
-            { id: 19, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol'] },
-            { id: 20, name: 'IGMP', keywords: ['IGMP', 'Internet Group Management Protocol', 'multicast'] }
+            { id: 9, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"] },
+            { id: 10, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
+            { id: 11, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS', 'WEB', 'ВЕБ', 'ВЭБ'] },
+            { id: 12, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
+            { id: 13, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard'] },
+            { id: 14, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
+            { id: 15, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
+            { id: 16, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING'] },
+            { id: 17, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'системный журнал'] },
+            { id: 18, name: 'IGMP ATTENTION', keywords: ['IGMP', 'multicast'] },
+            { id: 19, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'] },
+            { id: 20, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
+            { id: 21, name: 'IPv4', keywords: ['IPV4','IP','Internet Protocol'] },
+            { id: 22, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3'] },
+            { id: 23, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'] },
+            { id: 24, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', 'fiber'] },
+            { id: 25, name: 'SNMP', keywords: ['SNMP','SNMPV1','SNMPV2', 'SNMPV3', 'SNMPV2C', 'SIMPLE NETWORK MANAGEMENT PROTOCOL'] },
+            { id: 25, name: 'WEB', keywords: ['HTTP','HTTPS','WEB'] },
         ];
     }
     
@@ -155,6 +308,22 @@ function initEventListeners() {
 
      // Кнопка сброса результатов
     document.getElementById('resetAnalysisBtn').addEventListener('click', resetAnalysisResults);
+
+    // Кнопка обновления совета
+    document.getElementById('refreshTip').addEventListener('click', updateTip);
+
+     if ('ontouchstart' in window) {
+        // Добавляем touch-обработчики для лучшего UX
+        document.querySelectorAll('.btn, .protocol-card').forEach(element => {
+            element.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            element.addEventListener('touchend', function() {
+                this.style.transform = '';
+            });
+        });
+    }
 }
 
 // Открытие модального окна шаблона
@@ -164,7 +333,6 @@ function openTemplateModal() {
 
 // Обработка загрузки файла
 async function handleFileUpload(event) {
-
     resetAnalysisResults();
 
     const file = event.target.files[0];
@@ -182,6 +350,7 @@ async function handleFileUpload(event) {
 // Парсинг PDF файла
 async function parsePDFFile(file) {
     showLoading(true);
+    incrementFilesAnalyzed(); // Увеличиваем счетчик файлов
     
     try {
         const arrayBuffer = await file.arrayBuffer();
@@ -222,6 +391,7 @@ function parseTextFile(file) {
     reader.onload = function(e) {
         pdfText = e.target.result;
         analyzeText(pdfText);
+        incrementFilesAnalyzed(); // Увеличиваем счетчик файлов
         showNotification('Текстовый файл успешно загружен!');
     };
     reader.readAsText(file);
@@ -229,7 +399,6 @@ function parseTextFile(file) {
 
 // Парсинг текста вручную
 function parseManualText() {
-
     resetAnalysisResults();
     
     const text = document.getElementById('manualText').value;
@@ -239,6 +408,7 @@ function parseManualText() {
     }
     pdfText = text;
     analyzeText(text);
+    incrementFilesAnalyzed(); // Увеличиваем счетчик файлов
 }
 
 // Анализ текста на наличие протоколов
@@ -685,9 +855,28 @@ ${foundProtocols.map(p => `${p.id}. ${p.name} (${p.keywords.join(', ')})`).join(
 ${notFoundProtocols.map(p => `${p.id}. ${p.name} (${p.keywords.join(', ')})`).join('\n')}`;
     
     const blob = new Blob([docContent], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        type: 'application/octet-stream' 
     });
     
     saveAs(blob, `Протоколы_${new Date().toISOString().slice(0,10)}.docx`);
     showNotification('DOCX файл создан!');
+}
+
+// Функция для обновления года в футере
+function updateFooterYear() {
+    const yearElement = document.querySelector('.footer-bottom p');
+    if (yearElement) {
+        const currentYear = new Date().getFullYear();
+        yearElement.innerHTML = yearElement.innerHTML.replace('2024', currentYear);
+    }
+}
+
+// Функция для тестирования
+function testFunctionality() {
+    console.log('Приложение загружено. Тестовые данные:');
+    console.log('Протоколов в словаре:', protocols.length);
+    console.log('PDF.js версия:', pdfjsLib.version);
+    console.log('JSZip доступен:', typeof JSZip !== 'undefined');
+    console.log('FileSaver доступен:', typeof saveAs !== 'undefined');
+    console.log('Советов в базе:', networkTips.length);
 }

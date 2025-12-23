@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Парсер протоколов из даташитов</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,6 +21,27 @@
 </head>
 <body>
     <div class="container">
+        <!-- Daily Header с датой, временем и советами -->
+        <div class="daily-header">
+            <div class="daily-info">
+                <div class="datetime">
+                    <span id="currentDate"></span>
+                    <span id="currentTime"></span>
+                </div>
+                <div class="daily-tip">
+                    <i class="fas fa-lightbulb"></i>
+                    <span id="dailyTip">Загрузка совета...</span>
+                </div>
+                <div class="daily-stats">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Анализировано файлов: <span id="filesAnalyzed">0</span></span>
+                </div>
+            </div>
+            <button id="refreshTip" class="tip-refresh" title="Новый совет">
+                <i class="fas fa-redo"></i>
+            </button>
+        </div>
+
         <header>
             <h1><i class="fas fa-network-wired"></i> Парсер протоколов оборудования</h1>
             <p class="subtitle">Загрузите даташит в формате PDF для автоматического анализа протоколов</p>
@@ -85,8 +108,8 @@
                 <button class="btn export-btn" id="exportSimpleDocxBtn">
                     <i class="fas fa-file-word"></i> Простой DOCX
                 </button>
-                 <button class="btn secondary-btn" id="resetAnalysisBtn">
-                     <i class="fas fa-redo"></i> Сбросить результаты
+                <button class="btn" id="resetAnalysisBtn">
+                    <i class="fas fa-redo"></i> Сбросить результаты
                 </button>
             </div>
         </div>
@@ -111,6 +134,52 @@
             
             <button class="btn secondary-btn" id="backToMainBtn">Вернуться к анализу</button>
         </div>
+
+        <!-- Футер -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4><i class="fas fa-toolbox"></i> Protocol Parser</h4>
+                    <p>Инструмент для анализа даташитов оборудования</p>
+                    <p>Версия 1.0.0</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4><i class="fas fa-code"></i> Технологии</h4>
+                    <p>PDF.js • JavaScript • HTML5 • CSS3</p>
+                    <div class="tech-icons">
+                        <span class="tech-icon" title="JavaScript"><i class="fab fa-js"></i></span>
+                        <span class="tech-icon" title="HTML5"><i class="fab fa-html5"></i></span>
+                        <span class="tech-icon" title="CSS3"><i class="fab fa-css3-alt"></i></span>
+                        <span class="tech-icon" title="PDF"><i class="fas fa-file-pdf"></i></span>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h4><i class="fas fa-user"></i> Разработчик</h4>
+                    <p>Создано с ❤️ для сетевых инженеров</p>
+                    <div class="social-links">
+                        <a href="#" title="GitHub" class="social-link">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" title="Telegram" class="social-link">
+                            <i class="fab fa-telegram"></i>
+                        </a>
+                        <a href="#" title="Email" class="social-link">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Protocol Parser. Все права защищены.</p>
+                <p class="footer-note">
+                    <i class="fas fa-info-circle"></i> 
+                    Для корректной работы рекомендуется использовать современные браузеры
+                </p>
+            </div>
+        </footer>
     </div>
 
     <!-- Модальное окно для шаблона DOCX -->
