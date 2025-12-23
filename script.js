@@ -411,21 +411,30 @@ function parseManualText() {
     incrementFilesAnalyzed(); // Увеличиваем счетчик файлов
 }
 
-// Анализ текста на наличие протоколов
+// Улучшенная версия с поддержкой составных терминов
 function analyzeText(text) {
-    const textLower = text.toLowerCase();
-    
     protocols.forEach(protocol => {
         protocol.found = false;
         protocol.foundKeywords = [];
-    });
-    
-    protocols.forEach(protocol => {
+        
+        // Проверяем каждое ключевое слово
         for (const keyword of protocol.keywords) {
-            if (textLower.includes(keyword.toLowerCase())) {
-                protocol.found = true;
-                if (!protocol.foundKeywords) protocol.foundKeywords = [];
-                protocol.foundKeywords.push(keyword);
+            // Для коротких аббревиатур (2-3 символа) используем точный поиск
+            if (keyword.length <= 3) {
+                // Ищем аббревиатуру как отдельное слово
+                const regex = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, 'i');
+                if (regex.test(text)) {
+                    protocol.found = true;
+                    addFoundKeyword(protocol, keyword);
+                }
+            } 
+            // Для длинных слов и фраз используем обычный поиск
+            else {
+                const regex = new RegExp(`\\b${escapeRegExp(keyword)}\\b`, 'i');
+                if (regex.test(text)) {
+                    protocol.found = true;
+                    addFoundKeyword(protocol, keyword);
+                }
             }
         }
     });
@@ -433,6 +442,18 @@ function analyzeText(text) {
     saveProtocols();
     renderProtocolsGrid();
     updateStats();
+}
+
+// Вспомогательная функция для добавления найденного ключевого слова
+function addFoundKeyword(protocol, keyword) {
+    if (!protocol.foundKeywords) protocol.foundKeywords = [];
+    if (!protocol.foundKeywords.includes(keyword)) {
+        protocol.foundKeywords.push(keyword);
+    }
+}
+
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // Отображение сетки протоколов
