@@ -1,13 +1,17 @@
 // Инициализация pdf.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// База данных протоколов
+// ==================== //
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+// ==================== //
 let protocols = [];
 let pdfText = '';
 let currentFilter = 'all';
-let lastLoadedFile = null; // Сохраняем последний загруженный файл
+let lastLoadedFile = null;
 
-// Инициализация при загрузке страницы
+// ==================== //
+// ИНИЦИАЛИЗАЦИЯ
+// ==================== //
 document.addEventListener('DOMContentLoaded', function() {
     loadProtocols();
     initEventListeners();
@@ -19,7 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Загрузка протоколов из localStorage
+// ==================== //
+// ЗАГРУЗКА СЛОВАРЯ
+// ==================== //
 function loadProtocols() {
     const saved = localStorage.getItem('protocolsDictionary');
     if (saved) {
@@ -32,7 +38,6 @@ function loadProtocols() {
             foundKeywords: []
         }));
     } else {
-        // Базовый словарь по умолчанию
         protocols = [
             { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер', 'DHCP-client', 'DHCP-клиент', 'BOOTP'] },
             { id: 2, name: 'ICMP', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping'] },
@@ -68,7 +73,7 @@ function loadProtocols() {
     renderProtocolsGrid();
 }
 
-// Сохранение протоколов
+// Сохранение словаря
 function saveProtocols() {
     const protocolsToSave = protocols.map(protocol => ({
         id: protocol.id,
@@ -78,21 +83,54 @@ function saveProtocols() {
     localStorage.setItem('protocolsDictionary', JSON.stringify(protocolsToSave));
 }
 
-// Сброс результатов анализа (только статусов, не очищает текст)
+// ==================== //
+// ОЧИСТКА ТЕКСТА ОТ ССЫЛОК
+// ==================== //
+function cleanTextFromUrls(text) {
+    if (!text) return '';
+    
+    let cleaned = text;
+    
+    // Удаляем URL протоколы (http://, https://) и всё за ними до пробела
+    cleaned = cleaned.replace(/https?:\/\/[^\s<>"']+/gi, '');
+    
+    // Удаляем ссылки вида www.example.com
+    cleaned = cleaned.replace(/www\.[^\s<>"']+/gi, '');
+    
+    // Удаляем markdown ссылки [текст](url)
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/gi, '$1');
+    
+    // Удаляем HTML ссылки <a href="...">текст</a>
+    cleaned = cleaned.replace(/<a\s+[^>]*>([^<]*)<\/a>/gi, '$1');
+    
+    // Удаляем IP адреса с портами
+    cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?\b/g, '');
+    
+    // Удаляем email адреса
+    cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '');
+    
+    // Удаляем доменные имена (осторожно)
+    cleaned = cleaned.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.(?:com|ru|net|org|edu|gov|io|co|uk|de|fr|jp|cn|br|in|eu)(?:\/[^\s]*)?\b/gi, '');
+    
+    // Очищаем множественные пробелы
+    cleaned = cleaned.replace(/\s+/g, ' ');
+    
+    return cleaned.trim();
+}
+
+// ==================== //
+// СБРОС РЕЗУЛЬТАТОВ
+// ==================== //
 function resetAnalysisResults(keepText = false) {
-    // Сбрасываем статусы протоколов
     protocols.forEach(protocol => {
         protocol.found = false;
         protocol.foundKeywords = [];
     });
     
-    // Если не нужно сохранять текст, очищаем его
     if (!keepText) {
         pdfText = '';
         const manualText = document.getElementById('manualText');
-        if (manualText) {
-            manualText.value = '';
-        }
+        if (manualText) manualText.value = '';
         lastLoadedFile = null;
     }
     
@@ -104,198 +142,22 @@ function resetAnalysisResults(keepText = false) {
     }
 }
 
-// Полный сброс (очищает всё)
 function fullReset() {
     resetAnalysisResults(false);
 }
 
-// Инициализация обработчиков событий
-function initEventListeners() {
-    // Кнопка выбора файла
-    const selectFileBtn = document.getElementById('selectFileBtn');
-    if (selectFileBtn) {
-        selectFileBtn.addEventListener('click', () => {
-            document.getElementById('fileInput').click();
-        });
-    }
-
-    // Обработка загрузки файла
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', handleFileUpload);
-        // Очищаем value после обработки, чтобы можно было загрузить тот же файл снова
-        fileInput.addEventListener('click', function() {
-            this.value = null;
-        });
-    }
-
-    // Область перетаскивания
-    const dropArea = document.getElementById('dropArea');
-    if (dropArea) {
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '#f5f0ff';
-        });
-
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.style.background = '#faf7ff';
-        });
-
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '#faf7ff';
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                parsePDFFile(file);
-            }
-        });
-    }
-
-    // Анализ текста вручную
-    const parseTextBtn = document.getElementById('parseTextBtn');
-    if (parseTextBtn) {
-        parseTextBtn.addEventListener('click', parseManualText);
-    }
-
-    // Экспорт в DOCX
-    const exportDocxBtn = document.getElementById('exportDocxBtn');
-    if (exportDocxBtn) {
-        exportDocxBtn.addEventListener('click', openTemplateModal);
-    }
-
-    // Кнопка сброса
-    const resetBtn = document.getElementById('resetAnalysisBtn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', fullReset);
-    }
-
-    // Модальное окно
-    const closeTemplateBtn = document.getElementById('closeTemplateBtn');
-    if (closeTemplateBtn) {
-        closeTemplateBtn.addEventListener('click', () => {
-            document.getElementById('templateModal').classList.add('hidden');
-        });
-    }
-    
-    const generateDocxBtn = document.getElementById('generateDocxBtn');
-    if (generateDocxBtn) {
-        generateDocxBtn.addEventListener('click', generateDocxReport);
-    }
-
-    // Фильтры
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentFilter = this.getAttribute('data-filter');
-            renderProtocolsGrid();
-        });
-    });
-}
-
-// Открытие модального окна
-function openTemplateModal() {
-    const modal = document.getElementById('templateModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-    }
-}
-
-// Обработка загрузки файла
-async function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    // Сбрасываем только статусы, но не очищаем поле ввода
-    resetAnalysisResults(true);
-    
-    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-        await parsePDFFile(file);
-    } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
-        parseTextFile(file);
-    } else {
-        alert('Пожалуйста, загрузите PDF или TXT файл');
-    }
-}
-
-// Парсинг PDF файла
-async function parsePDFFile(file) {
-    showLoading(true);
-    
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        const numPages = pdf.numPages;
-        
-        let fullText = '';
-        
-        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-            updateProgress(Math.round((pageNum / numPages) * 100));
-            const page = await pdf.getPage(pageNum);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += pageText + ' ';
-            
-            // Небольшая задержка для обновления UI
-            if (pageNum % 5 === 0) {
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
-        }
-        
-        pdfText = fullText;
-        lastLoadedFile = file;
-        showLoading(false);
-        analyzeText(fullText);
-        showNotification(`PDF успешно загружен! Проанализировано ${numPages} страниц.`);
-        
-    } catch (error) {
-        showLoading(false);
-        console.error('Ошибка при чтении PDF:', error);
-        alert('Ошибка при чтении PDF файла. Убедитесь, что файл не поврежден.');
-    }
-}
-
-// Парсинг текстового файла
-function parseTextFile(file) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        pdfText = e.target.result;
-        lastLoadedFile = file;
-        analyzeText(pdfText);
-        showNotification('Текстовый файл успешно загружен!');
-    };
-    reader.onerror = function() {
-        alert('Ошибка при чтении файла');
-    };
-    reader.readAsText(file, 'UTF-8');
-}
-
-// Парсинг текста вручную
-function parseManualText() {
-    const text = document.getElementById('manualText').value;
-    if (!text.trim()) {
-        alert('Введите текст для анализа');
-        return;
-    }
-    
-    // Сбрасываем только статусы
-    resetAnalysisResults(true);
-    
-    pdfText = text;
-    lastLoadedFile = null;
-    analyzeText(text);
-    showNotification('Текст проанализирован');
-}
-
-// Анализ текста
+// ==================== //
+// АНАЛИЗ ТЕКСТА
+// ==================== //
 function analyzeText(text) {
     if (!text || text.trim() === '') {
         showNotification('Нет текста для анализа');
         return;
     }
     
-    const lowerText = text.toLowerCase();
+    // Очищаем текст от ссылок
+    let cleanText = cleanTextFromUrls(text);
+    const lowerText = cleanText.toLowerCase();
     
     protocols.forEach(protocol => {
         protocol.found = false;
@@ -303,6 +165,11 @@ function analyzeText(text) {
         
         for (const keyword of protocol.keywords) {
             const lowerKeyword = keyword.toLowerCase();
+            
+            // Пропускаем ключевые слова, похожие на URL
+            if (lowerKeyword.includes('http') || lowerKeyword.includes('www')) {
+                continue;
+            }
             
             // Поиск с учетом границ слова для коротких терминов
             if (keyword.length <= 3) {
@@ -340,7 +207,9 @@ function addFoundKeyword(protocol, keyword) {
     }
 }
 
-// Отображение сетки протоколов с фильтрацией
+// ==================== //
+// ОТОБРАЖЕНИЕ
+// ==================== //
 function renderProtocolsGrid() {
     const grid = document.getElementById('protocolsGrid');
     if (!grid) return;
@@ -355,7 +224,7 @@ function renderProtocolsGrid() {
     }
     
     if (filteredProtocols.length === 0) {
-        grid.innerHTML = '<div class="empty-state">Нет протоколов для отображения</div>';
+        grid.innerHTML = '<div class="empty-state">📭 Нет протоколов для отображения</div>';
         return;
     }
     
@@ -397,7 +266,6 @@ function escapeHtml(text) {
         .replace(/'/g, '&#39;');
 }
 
-// Обновление статистики
 function updateStats() {
     const foundCount = protocols.filter(p => p.found).length;
     const totalCount = protocols.length;
@@ -412,7 +280,90 @@ function updateStats() {
     if (matchPercentEl) matchPercentEl.textContent = `${matchPercent}%`;
 }
 
-// Показать/скрыть загрузку
+// ==================== //
+// ЗАГРУЗКА ФАЙЛОВ
+// ==================== //
+async function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    resetAnalysisResults(true);
+    
+    if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        await parsePDFFile(file);
+    } else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
+        parseTextFile(file);
+    } else {
+        alert('Пожалуйста, загрузите PDF или TXT файл');
+    }
+}
+
+async function parsePDFFile(file) {
+    showLoading(true);
+    
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const numPages = pdf.numPages;
+        
+        let fullText = '';
+        
+        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            updateProgress(Math.round((pageNum / numPages) * 100));
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + ' ';
+            
+            if (pageNum % 5 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+        }
+        
+        pdfText = cleanTextFromUrls(fullText);
+        lastLoadedFile = file;
+        showLoading(false);
+        analyzeText(pdfText);
+        showNotification(`PDF успешно загружен! Проанализировано ${numPages} страниц.`);
+        
+    } catch (error) {
+        showLoading(false);
+        console.error('Ошибка при чтении PDF:', error);
+        alert('Ошибка при чтении PDF файла. Убедитесь, что файл не поврежден.');
+    }
+}
+
+function parseTextFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        pdfText = cleanTextFromUrls(e.target.result);
+        lastLoadedFile = file;
+        analyzeText(pdfText);
+        showNotification('Текстовый файл успешно загружен!');
+    };
+    reader.onerror = function() {
+        alert('Ошибка при чтении файла');
+    };
+    reader.readAsText(file, 'UTF-8');
+}
+
+function parseManualText() {
+    let text = document.getElementById('manualText').value;
+    if (!text.trim()) {
+        alert('Введите текст для анализа');
+        return;
+    }
+    
+    resetAnalysisResults(true);
+    pdfText = cleanTextFromUrls(text);
+    lastLoadedFile = null;
+    analyzeText(pdfText);
+    showNotification('Текст проанализирован');
+}
+
+// ==================== //
+// UI ВСПОМОГАТЕЛЬНЫЕ
+// ==================== //
 function showLoading(show) {
     const loading = document.getElementById('pdfLoading');
     if (loading) {
@@ -424,7 +375,6 @@ function showLoading(show) {
     }
 }
 
-// Обновить прогресс
 function updateProgress(percent) {
     const progressText = document.getElementById('progressText');
     if (progressText) {
@@ -432,28 +382,12 @@ function updateProgress(percent) {
     }
 }
 
-// Показать уведомление
 function showNotification(message) {
-    // Удаляем старые уведомления
     const oldNotifications = document.querySelectorAll('.notification-toast');
     oldNotifications.forEach(n => n.remove());
     
     const notification = document.createElement('div');
     notification.className = 'notification-toast';
-    notification.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: #8b5cf6;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-        font-size: 14px;
-    `;
-    
     notification.textContent = message;
     document.body.appendChild(notification);
     
@@ -463,13 +397,20 @@ function showNotification(message) {
     }, 3000);
 }
 
-// Генерация DOCX отчета
+// ==================== //
+// ГЕНЕРАЦИЯ DOCX
+// ==================== //
+function openTemplateModal() {
+    const modal = document.getElementById('templateModal');
+    if (modal) modal.classList.remove('hidden');
+}
+
 function generateDocxReport() {
     try {
         const deviceName = document.getElementById('deviceName')?.value || 'Не указано';
         const deviceModel = document.getElementById('deviceModel')?.value || 'Не указано';
         const deviceVendor = document.getElementById('deviceVendor')?.value || 'Не указано';
-        const testDate = document.getElementById('testDate')?.value || new Date().toISOString().slice(0,10);
+        const testDate = document.getElementById('testDate')?.value || new Date().toISOString().slice(0, 10);
         const comments = document.getElementById('deviceComments')?.value || '';
         
         const foundProtocols = protocols.filter(p => p.found);
@@ -477,7 +418,6 @@ function generateDocxReport() {
         
         const zip = new JSZip();
         
-        // Content_Types.xml
         zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
     <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
@@ -485,18 +425,15 @@ function generateDocxReport() {
     <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 </Types>`);
 
-        // _rels/.rels
         zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
     <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`);
 
-        // word/_rels/document.xml.rels
         zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 </Relationships>`);
 
-        // Формируем содержимое документа
         let docContent = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
     <w:body>
@@ -560,7 +497,6 @@ function generateDocxReport() {
     }
 }
 
-// Функция экранирования XML
 function escapeXml(text) {
     if (!text) return '';
     return text.toString()
@@ -571,7 +507,87 @@ function escapeXml(text) {
         .replace(/'/g, '&apos;');
 }
 
-// Добавляем стили для empty-state и уведомлений если их нет
+// ==================== //
+// ОБРАБОТЧИКИ СОБЫТИЙ
+// ==================== //
+function initEventListeners() {
+    // Выбор файла
+    const selectFileBtn = document.getElementById('selectFileBtn');
+    if (selectFileBtn) {
+        selectFileBtn.addEventListener('click', () => document.getElementById('fileInput').click());
+    }
+    
+    // Обработка загрузки файла
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', handleFileUpload);
+        fileInput.addEventListener('click', function() { this.value = null; });
+    }
+    
+    // Drag & Drop
+    const dropArea = document.getElementById('dropArea');
+    if (dropArea) {
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.style.background = '#f5f0ff';
+        });
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.style.background = '#faf7ff';
+        });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.style.background = '#faf7ff';
+            const file = e.dataTransfer.files[0];
+            if (file) parsePDFFile(file);
+        });
+    }
+    
+    // Анализ текста
+    const parseTextBtn = document.getElementById('parseTextBtn');
+    if (parseTextBtn) {
+        parseTextBtn.addEventListener('click', parseManualText);
+    }
+    
+    // Экспорт
+    const exportDocxBtn = document.getElementById('exportDocxBtn');
+    if (exportDocxBtn) {
+        exportDocxBtn.addEventListener('click', openTemplateModal);
+    }
+    
+    // Сброс
+    const resetBtn = document.getElementById('resetAnalysisBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', fullReset);
+    }
+    
+    // Модальное окно
+    const closeTemplateBtn = document.getElementById('closeTemplateBtn');
+    if (closeTemplateBtn) {
+        closeTemplateBtn.addEventListener('click', () => {
+            document.getElementById('templateModal').classList.add('hidden');
+        });
+    }
+    
+    const generateDocxBtn = document.getElementById('generateDocxBtn');
+    if (generateDocxBtn) {
+        generateDocxBtn.addEventListener('click', generateDocxReport);
+    }
+    
+    // Фильтры
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.getAttribute('data-filter');
+            renderProtocolsGrid();
+        });
+    });
+}
+
+// ==================== //
+// ДОБАВЛЯЕМ СТИЛИ ДЛЯ УВЕДОМЛЕНИЙ
+// ==================== //
 if (!document.querySelector('#dynamic-styles')) {
     const style = document.createElement('style');
     style.id = 'dynamic-styles';
@@ -579,12 +595,32 @@ if (!document.querySelector('#dynamic-styles')) {
         .empty-state {
             text-align: center;
             padding: 60px 20px;
+            background: linear-gradient(135deg, #faf7ff, #f3eaff);
+            border-radius: 20px;
             color: #9b6ddf;
             font-size: 1.1em;
             grid-column: 1 / -1;
+            border: 2px dashed rgba(139, 92, 246, 0.3);
         }
         
-        @keyframes slideIn {
+        .notification-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 14px 28px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
+            z-index: 1000;
+            animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 14px;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
