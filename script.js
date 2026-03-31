@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== //
-// ЗАГРУЗКА СЛОВАРЯ
+// ЗАГРУЗКА СЛОВАРЯ (ТВОЙ ОРИГИНАЛЬНЫЙ МАССИВ)
 // ==================== //
 function loadProtocols() {
     const saved = localStorage.getItem('protocolsDictionary');
@@ -38,32 +38,33 @@ function loadProtocols() {
             foundKeywords: []
         }));
     } else {
+        // ТВОЙ ОРИГИНАЛЬНЫЙ МАССИВ ПРОТОКОЛОВ
         protocols = [
-            { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер', 'DHCP-client', 'DHCP-клиент', 'BOOTP'] },
-            { id: 2, name: 'ICMP', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping'] },
+            { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'] },
+            { id: 2, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping'] },
             { id: 3, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'] },
-            { id: 4, name: 'OSPF', keywords: ['OSPF', 'Open Shortest Path First'] },
-            { id: 5, name: 'BGP', keywords: ['BGP', 'Border Gateway Protocol'] },
-            { id: 6, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
-            { id: 7, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', 'Vxlan'] },
-            { id: 8, name: 'STP/RSTP', keywords: ['STP', 'RSTP', 'Spanning Tree', 'Rapid Spanning Tree'] },
-            { id: 9, name: 'HTTP/HTTPS', keywords: ['HTTP', 'HTTPS', 'Hypertext Transfer Protocol', 'SSL', 'TLS', 'WEB'] },
-            { id: 10, name: 'SSH', keywords: ['SSH', 'Secure Shell'] },
-            { id: 11, name: 'Telnet', keywords: ['Telnet'] },
-            { id: 12, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol'] },
-            { id: 13, name: 'IGMP', keywords: ['IGMP', 'Internet Group Management Protocol', 'multicast'] },
-            { id: 14, name: 'IPv4', keywords: ['IPv4', 'IP', 'Internet Protocol'] },
-            { id: 15, name: 'IPv6', keywords: ['IPv6'] },
-            { id: 16, name: 'DHCP Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
-            { id: 17, name: 'IGMP Snooping', keywords: ['IGMP snooping', 'IGMP-snooping'] },
-            { id: 18, name: 'LACP', keywords: ['LACP', 'Link Aggregation', '802.3ad'] },
-            { id: 19, name: 'QoS', keywords: ['QoS', 'Quality of Service'] },
-            { id: 20, name: 'RADIUS', keywords: ['RADIUS', 'Remote Authentication Dial-In User Service'] },
-            { id: 21, name: 'TACACS+', keywords: ['TACACS', 'TACACS+'] },
-            { id: 22, name: 'NTP', keywords: ['NTP', 'Network Time Protocol'] },
-            { id: 23, name: 'Syslog', keywords: ['Syslog', 'system log'] },
-            { id: 24, name: 'NetFlow', keywords: ['NetFlow', 'sFlow', 'flow'] },
-            { id: 25, name: 'VRRP/HSRP', keywords: ['VRRP', 'HSRP', 'redundancy', 'first hop'] }
+            { id: 4, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'] },
+            { id: 5, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'] },
+            { id: 6, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'] },
+            { id: 7, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'] },
+            { id: 8, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
+            { id: 9, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"] },
+            { id: 10, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
+            { id: 11, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS', 'WEB', 'ВЕБ', 'ВЭБ'] },
+            { id: 12, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
+            { id: 13, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'] },
+            { id: 14, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
+            { id: 15, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
+            { id: 16, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
+            { id: 17, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'системный журнал'] },
+            { id: 18, name: 'IGMP ATTENTION', keywords: ['IGMP', 'multicast'] },
+            { id: 19, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'] },
+            { id: 20, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
+            { id: 21, name: 'IPv4', keywords: ['IPV4','IP','Internet Protocol'] },
+            { id: 22, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3'] },
+            { id: 23, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'] },
+            { id: 24, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', 'fiber'] },
+            { id: 25, name: 'WEB', keywords: ['HTTP','HTTPS','WEB'] }
         ];
     }
     
