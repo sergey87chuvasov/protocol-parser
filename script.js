@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== //
-// ЗАГРУЗКА СЛОВАРЯ (ТВОЙ ОРИГИНАЛЬНЫЙ МАССИВ)
+// ЗАГРУЗКА СЛОВАРЯ
 // ==================== //
 function loadProtocols() {
     const saved = localStorage.getItem('protocolsDictionary');
@@ -38,33 +38,32 @@ function loadProtocols() {
             foundKeywords: []
         }));
     } else {
-        // ТВОЙ ОРИГИНАЛЬНЫЙ МАССИВ ПРОТОКОЛОВ
         protocols = [
-            { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'] },
-            { id: 2, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping'] },
+            { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер', 'DHCP-client', 'DHCP-клиент', 'BOOTP', 'Dynamic Ip Allocation', 'DHCP Client', 'DHCP Server'] },
+            { id: 2, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping', 'icmp ping', 'ping request', 'ping reply'] },
             { id: 3, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'] },
             { id: 4, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'] },
             { id: 5, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'] },
             { id: 6, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'] },
             { id: 7, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'] },
             { id: 8, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
-            { id: 9, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"] },
+            { id: 9, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', 'Vxlan'] },
             { id: 10, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
-            { id: 11, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS', 'WEB', 'ВЕБ', 'ВЭБ'] },
+            { id: 11, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTPS', 'HTTP Secure', 'SSL', 'TLS', 'WEB', 'ВЕБ', 'ВЭБ'] },
             { id: 12, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
             { id: 13, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'] },
             { id: 14, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
             { id: 15, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
             { id: 16, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
-            { id: 17, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'системный журнал'] },
+            { id: 17, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'] },
             { id: 18, name: 'IGMP ATTENTION', keywords: ['IGMP', 'multicast'] },
-            { id: 19, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'] },
+            { id: 19, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol', 'IPV4', 'IP'] },
             { id: 20, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
-            { id: 21, name: 'IPv4', keywords: ['IPV4','IP','Internet Protocol'] },
-            { id: 22, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3'] },
-            { id: 23, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'] },
-            { id: 24, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', 'fiber'] },
-            { id: 25, name: 'WEB', keywords: ['HTTP','HTTPS','WEB'] }
+            { id: 21, name: 'IPv4', keywords: ['IPV4', 'IP', 'Internet Protocol'] },
+            { id: 22, name: 'IGMP V3', keywords: ['IGMP V3', 'IGMP VERSION 3', 'IGMP VERSION 2, 3', 'IGMPv1/v2/v3'] },
+            { id: 23, name: 'RJ45', keywords: ['RJ45', '1000base-t', '1000 base-t', 'ethernet', 'eth', 'copper'] },
+            { id: 24, name: 'SFP', keywords: ['SFP', 'SFP+', '1000 base-t', '1000base-x', '10g', 'fiber'] },
+            { id: 25, name: 'WEB', keywords: ['HTTP', 'HTTPS', 'WEB'] }
         ];
     }
     
@@ -74,7 +73,6 @@ function loadProtocols() {
     renderProtocolsGrid();
 }
 
-// Сохранение словаря
 function saveProtocols() {
     const protocolsToSave = protocols.map(protocol => ({
         id: protocol.id,
@@ -92,28 +90,34 @@ function cleanTextFromUrls(text) {
     
     let cleaned = text;
     
-    // Удаляем URL протоколы (http://, https://) и всё за ними до пробела
-    cleaned = cleaned.replace(/https?:\/\/[^\s<>"']+/gi, '');
+    // Удаляем URL протоколы (http://, https://) и всё за ними
+    cleaned = cleaned.replace(/https?:\/\/[^\s<>"'\]]+/gi, '');
     
-    // Удаляем ссылки вида www.example.com
-    cleaned = cleaned.replace(/www\.[^\s<>"']+/gi, '');
+    // Удаляем www ссылки
+    cleaned = cleaned.replace(/www\.[^\s<>"'\]]+/gi, '');
     
-    // Удаляем markdown ссылки [текст](url)
+    // Удаляем markdown ссылки
     cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/gi, '$1');
     
-    // Удаляем HTML ссылки <a href="...">текст</a>
+    // Удаляем HTML ссылки
     cleaned = cleaned.replace(/<a\s+[^>]*>([^<]*)<\/a>/gi, '$1');
     
-    // Удаляем IP адреса с портами
-    cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?\b/g, '');
+    // Удаляем домены
+    cleaned = cleaned.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b/gi, '');
     
-    // Удаляем email адреса
+    // Удаляем IP адреса
+    cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '');
+    
+    // Удаляем email
     cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '');
     
-    // Удаляем доменные имена (осторожно)
-    cleaned = cleaned.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.(?:com|ru|net|org|edu|gov|io|co|uk|de|fr|jp|cn|br|in|eu)(?:\/[^\s]*)?\b/gi, '');
+    // Удаляем отдельные слова http, https
+    cleaned = cleaned.replace(/\bhttps?\b/gi, '');
     
-    // Очищаем множественные пробелы
+    // Очищаем от лишних символов
+    cleaned = cleaned.replace(/[^\w\s\u0400-\u04FF\-\.]/g, ' ');
+    
+    // Убираем множественные пробелы
     cleaned = cleaned.replace(/\s+/g, ' ');
     
     return cleaned.trim();
@@ -148,7 +152,7 @@ function fullReset() {
 }
 
 // ==================== //
-// АНАЛИЗ ТЕКСТА
+// АНАЛИЗ ТЕКСТА (ИСПРАВЛЕННЫЙ)
 // ==================== //
 function analyzeText(text) {
     if (!text || text.trim() === '') {
@@ -156,9 +160,13 @@ function analyzeText(text) {
         return;
     }
     
-    // Очищаем текст от ссылок
+    // Очищаем текст от ссылок и URL
     let cleanText = cleanTextFromUrls(text);
+    
     const lowerText = cleanText.toLowerCase();
+    
+    // Разбиваем текст на отдельные слова (только слова)
+    const words = lowerText.split(/\s+/).filter(word => word.length > 0);
     
     protocols.forEach(protocol => {
         protocol.found = false;
@@ -172,17 +180,17 @@ function analyzeText(text) {
                 continue;
             }
             
-            // Поиск с учетом границ слова для коротких терминов
-            if (keyword.length <= 3) {
-                const regex = new RegExp(`\\b${escapeRegExp(lowerKeyword)}\\b`, 'i');
-                if (regex.test(lowerText)) {
+            // Для коротких ключевых слов (до 4 символов) - точное совпадение со словами
+            if (lowerKeyword.length <= 4) {
+                if (words.some(word => word === lowerKeyword)) {
                     protocol.found = true;
                     addFoundKeyword(protocol, keyword);
                 }
-            } 
-            // Для длинных терминов
+            }
+            // Для длинных ключевых слов - поиск с границами слова
             else {
-                if (lowerText.includes(lowerKeyword)) {
+                const regex = new RegExp(`\\b${escapeRegExp(lowerKeyword)}\\b`, 'i');
+                if (regex.test(cleanText)) {
                     protocol.found = true;
                     addFoundKeyword(protocol, keyword);
                 }
@@ -315,13 +323,9 @@ async function parsePDFFile(file) {
             const textContent = await page.getTextContent();
             const pageText = textContent.items.map(item => item.str).join(' ');
             fullText += pageText + ' ';
-            
-            if (pageNum % 5 === 0) {
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
         }
         
-        pdfText = cleanTextFromUrls(fullText);
+        pdfText = fullText;
         lastLoadedFile = file;
         showLoading(false);
         analyzeText(pdfText);
@@ -337,7 +341,7 @@ async function parsePDFFile(file) {
 function parseTextFile(file) {
     const reader = new FileReader();
     reader.onload = function(e) {
-        pdfText = cleanTextFromUrls(e.target.result);
+        pdfText = e.target.result;
         lastLoadedFile = file;
         analyzeText(pdfText);
         showNotification('Текстовый файл успешно загружен!');
@@ -356,7 +360,7 @@ function parseManualText() {
     }
     
     resetAnalysisResults(true);
-    pdfText = cleanTextFromUrls(text);
+    pdfText = text;
     lastLoadedFile = null;
     analyzeText(pdfText);
     showNotification('Текст проанализирован');
@@ -471,7 +475,7 @@ function generateDocxReport() {
         
         <w:p><w:r><w:t> </w:t></w:r></w:p>
         <w:p><w:r><w:t>---</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Отчет сгенерирован автоматически с помощью Protocol Parser</w:t></w:r></w:p>
+        <w:p><w:r><w:t>Отчет сгенерирован автоматически</w:t></w:r></w:p>
     </w:body>
 </w:document>`;
 
@@ -512,20 +516,17 @@ function escapeXml(text) {
 // ОБРАБОТЧИКИ СОБЫТИЙ
 // ==================== //
 function initEventListeners() {
-    // Выбор файла
     const selectFileBtn = document.getElementById('selectFileBtn');
     if (selectFileBtn) {
         selectFileBtn.addEventListener('click', () => document.getElementById('fileInput').click());
     }
     
-    // Обработка загрузки файла
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
         fileInput.addEventListener('change', handleFileUpload);
         fileInput.addEventListener('click', function() { this.value = null; });
     }
     
-    // Drag & Drop
     const dropArea = document.getElementById('dropArea');
     if (dropArea) {
         dropArea.addEventListener('dragover', (e) => {
@@ -543,25 +544,21 @@ function initEventListeners() {
         });
     }
     
-    // Анализ текста
     const parseTextBtn = document.getElementById('parseTextBtn');
     if (parseTextBtn) {
         parseTextBtn.addEventListener('click', parseManualText);
     }
     
-    // Экспорт
     const exportDocxBtn = document.getElementById('exportDocxBtn');
     if (exportDocxBtn) {
         exportDocxBtn.addEventListener('click', openTemplateModal);
     }
     
-    // Сброс
     const resetBtn = document.getElementById('resetAnalysisBtn');
     if (resetBtn) {
         resetBtn.addEventListener('click', fullReset);
     }
     
-    // Модальное окно
     const closeTemplateBtn = document.getElementById('closeTemplateBtn');
     if (closeTemplateBtn) {
         closeTemplateBtn.addEventListener('click', () => {
@@ -574,7 +571,6 @@ function initEventListeners() {
         generateDocxBtn.addEventListener('click', generateDocxReport);
     }
     
-    // Фильтры
     const filterBtns = document.querySelectorAll('.filter-btn');
     filterBtns.forEach(btn => {
         btn.addEventListener('click', function() {
