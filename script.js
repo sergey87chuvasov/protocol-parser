@@ -90,34 +90,15 @@ function cleanTextFromUrls(text) {
     
     let cleaned = text;
     
-    // Удаляем URL протоколы (http://, https://) и всё за ними
     cleaned = cleaned.replace(/https?:\/\/[^\s<>"'\]]+/gi, '');
-    
-    // Удаляем www ссылки
     cleaned = cleaned.replace(/www\.[^\s<>"'\]]+/gi, '');
-    
-    // Удаляем markdown ссылки
     cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/gi, '$1');
-    
-    // Удаляем HTML ссылки
     cleaned = cleaned.replace(/<a\s+[^>]*>([^<]*)<\/a>/gi, '$1');
-    
-    // Удаляем домены
     cleaned = cleaned.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b/gi, '');
-    
-    // Удаляем IP адреса
     cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '');
-    
-    // Удаляем email
     cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '');
-    
-    // Удаляем отдельные слова http, https
     cleaned = cleaned.replace(/\bhttps?\b/gi, '');
-    
-    // Очищаем от лишних символов
     cleaned = cleaned.replace(/[^\w\s\u0400-\u04FF\-\.]/g, ' ');
-    
-    // Убираем множественные пробелы
     cleaned = cleaned.replace(/\s+/g, ' ');
     
     return cleaned.trim();
@@ -152,7 +133,7 @@ function fullReset() {
 }
 
 // ==================== //
-// АНАЛИЗ ТЕКСТА (ИСПРАВЛЕННЫЙ)
+// АНАЛИЗ ТЕКСТА
 // ==================== //
 function analyzeText(text) {
     if (!text || text.trim() === '') {
@@ -160,12 +141,8 @@ function analyzeText(text) {
         return;
     }
     
-    // Очищаем текст от ссылок и URL
     let cleanText = cleanTextFromUrls(text);
-    
     const lowerText = cleanText.toLowerCase();
-    
-    // Разбиваем текст на отдельные слова (только слова)
     const words = lowerText.split(/\s+/).filter(word => word.length > 0);
     
     protocols.forEach(protocol => {
@@ -175,20 +152,16 @@ function analyzeText(text) {
         for (const keyword of protocol.keywords) {
             const lowerKeyword = keyword.toLowerCase();
             
-            // Пропускаем ключевые слова, похожие на URL
             if (lowerKeyword.includes('http') || lowerKeyword.includes('www')) {
                 continue;
             }
             
-            // Для коротких ключевых слов (до 4 символов) - точное совпадение со словами
             if (lowerKeyword.length <= 4) {
                 if (words.some(word => word === lowerKeyword)) {
                     protocol.found = true;
                     addFoundKeyword(protocol, keyword);
                 }
-            }
-            // Для длинных ключевых слов - поиск с границами слова
-            else {
+            } else {
                 const regex = new RegExp(`\\b${escapeRegExp(lowerKeyword)}\\b`, 'i');
                 if (regex.test(cleanText)) {
                     protocol.found = true;
@@ -403,7 +376,7 @@ function showNotification(message) {
 }
 
 // ==================== //
-// ГЕНЕРАЦИЯ DOCX
+// ГЕНЕРАЦИЯ DOCX (КРАСИВЫЙ ВАРИАНТ)
 // ==================== //
 function openTemplateModal() {
     const modal = document.getElementById('templateModal');
@@ -420,6 +393,9 @@ function generateDocxReport() {
         
         const foundProtocols = protocols.filter(p => p.found);
         const notFoundProtocols = protocols.filter(p => !p.found);
+        const totalCount = protocols.length;
+        const foundCount = foundProtocols.length;
+        const percent = Math.round((foundCount / totalCount) * 100);
         
         const zip = new JSZip();
         
@@ -428,6 +404,7 @@ function generateDocxReport() {
     <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
     <Default Extension="xml" ContentType="application/xml"/>
     <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+    <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`);
 
         zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -439,43 +416,159 @@ function generateDocxReport() {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 </Relationships>`);
 
-        let docContent = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+        zip.file("word/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+    <w:docDefaults>
+        <w:rPrDefault>
+            <w:rPr>
+                <w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>
+                <w:sz w:val="24"/>
+            </w:rPr>
+        </w:rPrDefault>
+    </w:docDefaults>
+</w:styles>`);
+
+        let foundRows = '';
+        foundProtocols.forEach((p, idx) => {
+            foundRows += `
+            <w:tr>
+                <w:tc><w:tcW w:w="500" w:type="dxa"/><w:p><w:r><w:t>${idx + 1}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="2500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(p.name)}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="3500" w:type="dxa"/><w:p><w:r><w:t>${escapeXml(p.keywords.join(', '))}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="2500" w:type="dxa"/><w:p><w:r><w:rPr><w:color w:val="16A34A"/></w:rPr><w:t>${p.foundKeywords ? escapeXml(p.foundKeywords.join(', ')) : '-'}</w:t></w:r></w:p></w:tc>
+            </w:tr>`;
+        });
+
+        let notFoundRows = '';
+        notFoundProtocols.forEach((p, idx) => {
+            notFoundRows += `
+            <w:tr>
+                <w:tc><w:tcW w:w="500" w:type="dxa"/><w:p><w:r><w:t>${idx + 1}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="3000" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(p.name)}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="5500" w:type="dxa"/><w:p><w:r><w:t>${escapeXml(p.keywords.join(', '))}</w:t></w:r></w:p></w:tc>
+            </w:tr>`;
+        });
+
+        let percentColor = 'EF4444';
+        if (percent >= 80) percentColor = '16A34A';
+        else if (percent >= 60) percentColor = 'EAB308';
+        else if (percent >= 40) percentColor = 'F97316';
+
+        const docContent = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
     <w:body>
-        <w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t>Отчет о поддержке протоколов оборудования</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="44"/><w:color w:val="5B21B6"/></w:rPr><w:t>📊 ОТЧЕТ О ПОДДЕРЖКЕ ПРОТОКОЛОВ</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="28"/><w:color w:val="8B5CF6"/></w:rPr><w:t>Тестирование телекоммуникационного оборудования</w:t></w:r></w:p>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
-        <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Информация об оборудовании:</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Наименование: ${escapeXml(deviceName)}</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Модель: ${escapeXml(deviceModel)}</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Производитель: ${escapeXml(deviceVendor)}</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Дата тестирования: ${escapeXml(testDate)}</w:t></w:r></w:p>
-        ${comments ? `<w:p><w:r><w:t>Комментарии: ${escapeXml(comments)}</w:t></w:r></w:p>` : ''}
-        <w:p><w:r><w:t>Дата формирования отчета: ${escapeXml(new Date().toLocaleString('ru-RU'))}</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="C4B5FD"/></w:rPr><w:t>═══════════════════════════════════════════════════════════════</w:t></w:r></w:p>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
         
-        <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Статистика:</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Всего протоколов в словаре: ${protocols.length}</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Поддерживаемые протоколы: ${foundProtocols.length}</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Не поддерживаемые протоколы: ${notFoundProtocols.length}</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Процент поддержки: ${Math.round((foundProtocols.length / protocols.length) * 100)}%</w:t></w:r></w:p>
+        <w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="7C3AED"/></w:rPr><w:t>📋 ИНФОРМАЦИЯ ОБ ОБОРУДОВАНИИ</w:t></w:r></w:p>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
         
-        <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Поддерживаемые протоколы:</w:t></w:r></w:p>
-        ${foundProtocols.map(p => `
-        <w:p><w:r><w:t>✓ ${escapeXml(p.name)}</w:t></w:r></w:p>
-        ${p.foundKeywords && p.foundKeywords.length > 0 ? 
-        `<w:p><w:r><w:t>   (найдено по: ${escapeXml(p.foundKeywords.join(', '))})</w:t></w:r></w:p>` : ''}
-        `).join('')}
-        
+        <w:tbl>
+            <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
+                <w:tblBorders>
+                    <w:top w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:left w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:right w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/>
+                    <w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/>
+                </w:tblBorders>
+            </w:tblPr>
+            <w:tr>
+                <w:tc><w:tcW w:w="2500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/><w:color w:val="7C3AED"/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="5500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/><w:color w:val="7C3AED"/></w:rPr><w:t>Значение</w:t></w:r></w:p></w:tc>
+            </w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Наименование</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(deviceName)}</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Модель</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(deviceModel)}</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Производитель</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(deviceVendor)}</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Дата тестирования</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(testDate)}</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Дата отчета</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(new Date().toLocaleString('ru-RU'))}</w:t></w:r></w:p></w:tc></w:tr>
+            ${comments ? `<w:tr><w:tc><w:p><w:r><w:t>Комментарии</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(comments)}</w:t></w:r></w:p></w:tc></w:tr>` : ''}
+        </w:tbl>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
-        <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Не поддерживаемые протоколы:</w:t></w:r></w:p>
-        ${notFoundProtocols.map(p => `
-        <w:p><w:r><w:t>✗ ${escapeXml(p.name)}</w:t></w:r></w:p>
-        `).join('')}
         
+        <w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="7C3AED"/></w:rPr><w:t>📈 СТАТИСТИКА</w:t></w:r></w:p>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
-        <w:p><w:r><w:t>---</w:t></w:r></w:p>
-        <w:p><w:r><w:t>Отчет сгенерирован автоматически</w:t></w:r></w:p>
+        
+        <w:tbl>
+            <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
+                <w:tblBorders>
+                    <w:top w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:left w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:right w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/>
+                    <w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/>
+                </w:tblBorders>
+            </w:tblPr>
+            <w:tr>
+                <w:tc><w:tcW w:w="4000" w:type="dxa"/><w:p><w:r><w:rPr><w:b/><w:color w:val="7C3AED"/></w:rPr><w:t>Показатель</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="4000" w:type="dxa"/><w:p><w:r><w:rPr><w:b/><w:color w:val="7C3AED"/></w:rPr><w:t>Результат</w:t></w:r></w:p></w:tc>
+            </w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Всего протоколов</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${totalCount}</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Поддерживаемые</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/><w:color w:val="16A34A"/></w:rPr><w:t>${foundCount}</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Не поддерживаемые</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/><w:color w:val="EF4444"/></w:rPr><w:t>${notFoundProtocols.length}</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:t>Процент поддержки</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="${percentColor}"/></w:rPr><w:t>${percent}%</w:t></w:r></w:p></w:tc></w:tr>
+        </w:tbl>
+        <w:p><w:r><w:t> </w:t></w:r></w:p>
+        
+        ${foundProtocols.length > 0 ? `
+        <w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="16A34A"/></w:rPr><w:t>✅ ПОДДЕРЖИВАЕМЫЕ ПРОТОКОЛЫ (${foundProtocols.length})</w:t></w:r></w:p>
+        <w:p><w:r><w:t> </w:t></w:r></w:p>
+        <w:tbl>
+            <w:tblPr><w:tblW w:w="9000" w:type="dxa"/>
+                <w:tblBorders>
+                    <w:top w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:left w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:bottom w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:right w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:insideH w:val="single" w:sz="4" w:color="DCFCE7"/>
+                    <w:insideV w:val="single" w:sz="4" w:color="DCFCE7"/>
+                </w:tblBorders>
+            </w:tblPr>
+            <w:tr>
+                <w:tc><w:tcW w:w="500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>№</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="2500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Протокол</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="3500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Ключевые слова</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="2500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Найдено по</w:t></w:r></w:p></w:tc>
+            </w:tr>
+            ${foundRows}
+        </w:tbl>
+        <w:p><w:r><w:t> </w:t></w:r></w:p>
+        ` : ''}
+        
+        ${notFoundProtocols.length > 0 ? `
+        <w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="EF4444"/></w:rPr><w:t>❌ НЕ ПОДДЕРЖИВАЕМЫЕ ПРОТОКОЛЫ (${notFoundProtocols.length})</w:t></w:r></w:p>
+        <w:p><w:r><w:t> </w:t></w:r></w:p>
+        <w:tbl>
+            <w:tblPr><w:tblW w:w="9000" w:type="dxa"/>
+                <w:tblBorders>
+                    <w:top w:val="single" w:sz="4" w:color="FCA5A5"/>
+                    <w:left w:val="single" w:sz="4" w:color="FCA5A5"/>
+                    <w:bottom w:val="single" w:sz="4" w:color="FCA5A5"/>
+                    <w:right w:val="single" w:sz="4" w:color="FCA5A5"/>
+                    <w:insideH w:val="single" w:sz="4" w:color="FEE2E2"/>
+                    <w:insideV w:val="single" w:sz="4" w:color="FEE2E2"/>
+                </w:tblBorders>
+            </w:tblPr>
+            <w:tr>
+                <w:tc><w:tcW w:w="500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>№</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="3000" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Протокол</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="5500" w:type="dxa"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Ключевые слова</w:t></w:r></w:p></w:tc>
+            </w:tr>
+            ${notFoundRows}
+        </w:tbl>
+        <w:p><w:r><w:t> </w:t></w:r></w:p>
+        ` : ''}
+        
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>─────────────────────────────────────────────────────────────</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>📋 Отчет сгенерирован автоматически с помощью системы ProtoScan</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="C4B5FD"/><w:i/><w:sz w:val="20"/></w:rPr><w:t>© 2026 ЦПЛ МЦК | Система тестирования протоколов телекоммуникационного оборудования</w:t></w:r></w:p>
+        
+        <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>
     </w:body>
 </w:document>`;
 
@@ -492,7 +585,7 @@ function generateDocxReport() {
             if (modal) modal.classList.add('hidden');
             showNotification('DOCX отчет успешно создан!');
         }).catch(function(error) {
-            console.error('Ошибка при создании ZIP:', error);
+            console.error('Ошибка:', error);
             alert('Ошибка при создании DOCX файла');
         });
 
@@ -583,7 +676,7 @@ function initEventListeners() {
 }
 
 // ==================== //
-// ДОБАВЛЯЕМ СТИЛИ ДЛЯ УВЕДОМЛЕНИЙ
+// СТИЛИ ДЛЯ УВЕДОМЛЕНИЙ
 // ==================== //
 if (!document.querySelector('#dynamic-styles')) {
     const style = document.createElement('style');
@@ -613,8 +706,6 @@ if (!document.querySelector('#dynamic-styles')) {
             animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             font-size: 14px;
             font-weight: 500;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         @keyframes slideInRight {
