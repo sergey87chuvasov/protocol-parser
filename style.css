@@ -1076,3 +1076,30 @@ header .subtitle {
         font-size: 1.2em;
     }
 }
+
+.animated-plug {
+    animation: plugPulse 1.5s ease-in-out infinite;
+    color: #8b5cf6;
+}
+
+@keyframes plugPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+        color: #d946ef;
+    }
+}
+
+.badge-text {
+    font-size: 0.55em;
+    background: transparent;
+    padding: 4px 12px;
+    border-radius: 50px;
+    display: inline-block;
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: #8b5cf6;
+}
