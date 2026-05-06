@@ -8,22 +8,19 @@
     <title>ProtoScan | ЦПЛ МЦК</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- PDF.js для парсинга PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- JSZip для работы с zip архивами -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <!-- FileSaver для сохранения файлов -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-<h1>
-    <i class="fas fa-plug animated-plug"></i> 
-    ProtoScan 
-    <span class="badge-text">ЦПЛ МЦК</span>
-</h1>
-<p class="subtitle">Загрузите даташит в формате PDF или вставьте текст для автоматического анализа протоколов</p>
+            <h1>
+                <i class="fas fa-chart-line"></i> 
+                ProtoScan 
+                <span class="badge-white">ЦПЛ МЦК</span>
+            </h1>
+            <p class="subtitle">Автоматический анализ поддержки протоколов телекоммуникационным оборудованием</p>
         </header>
 
         <div class="upload-section">
@@ -65,16 +62,13 @@
                 </div>
             </div>
             
-            <!-- Фильтры -->
             <div class="filter-buttons">
                 <button class="filter-btn active" data-filter="all">Все протоколы</button>
                 <button class="filter-btn" data-filter="found">Найденные</button>
                 <button class="filter-btn" data-filter="notFound">Не найденные</button>
             </div>
             
-            <div class="protocols-grid" id="protocolsGrid">
-                <!-- Протоколы будут добавляться здесь -->
-            </div>
+            <div class="protocols-grid" id="protocolsGrid"></div>
             
             <div class="export-section">
                 <button class="btn export-btn" id="exportDocxBtn">
@@ -86,54 +80,42 @@
             </div>
         </div>
 
-        <!-- Футер -->
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h4><i class="fas fa-toolbox"></i> Protocol Parser</h4>
+                    <h4><i class="fas fa-toolbox"></i> ProtoScan</h4>
                     <p>Инструмент для анализа даташитов оборудования</p>
-                    <p>Версия 2.0.0</p>
+                    <p>Версия 2.1.0</p>
                 </div>
-                
                 <div class="footer-section">
                     <h4><i class="fas fa-code"></i> Технологии</h4>
                     <p>PDF.js • JavaScript • HTML5 • CSS3</p>
                     <div class="tech-icons">
-                        <span class="tech-icon" title="JavaScript"><i class="fab fa-js"></i></span>
-                        <span class="tech-icon" title="HTML5"><i class="fab fa-html5"></i></span>
-                        <span class="tech-icon" title="CSS3"><i class="fab fa-css3-alt"></i></span>
-                        <span class="tech-icon" title="PDF"><i class="fas fa-file-pdf"></i></span>
+                        <span class="tech-icon"><i class="fab fa-js"></i></span>
+                        <span class="tech-icon"><i class="fab fa-html5"></i></span>
+                        <span class="tech-icon"><i class="fab fa-css3-alt"></i></span>
+                        <span class="tech-icon"><i class="fas fa-file-pdf"></i></span>
                     </div>
                 </div>
             </div>
-            
             <div class="footer-bottom">
-                <p>&copy; 2026 Protocol Parser. Все права защищены.</p>
-                <p class="footer-note">
-                    <i class="fas fa-info-circle"></i> 
-                    Для корректной работы рекомендуется использовать современные браузеры
-                </p>
+                <p>&copy; 2026 ProtoScan | ЦПЛ МЦК. Все права защищены.</p>
             </div>
         </footer>
     </div>
 
-    <!-- Модальное окно для шаблона DOCX -->
     <div class="modal hidden" id="templateModal">
         <div class="modal-content">
             <h3>Настройка отчета</h3>
             <div class="form-group">
                 <label>Название оборудования:</label>
                 <input type="text" id="deviceName" placeholder="Например: Cisco Catalyst 2960-X">
-                
                 <label>Модель:</label>
                 <input type="text" id="deviceModel" placeholder="Например: WS-C2960X-24TS-L">
-                
                 <label>Производитель:</label>
                 <input type="text" id="deviceVendor" placeholder="Например: Cisco">
-                
                 <label>Дата тестирования:</label>
                 <input type="date" id="testDate">
-                
                 <label>Комментарии:</label>
                 <textarea id="deviceComments" placeholder="Дополнительные заметки..."></textarea>
             </div>

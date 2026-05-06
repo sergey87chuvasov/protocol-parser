@@ -1103,3 +1103,64 @@ header .subtitle {
     border: 1px solid rgba(139, 92, 246, 0.4);
     color: #8b5cf6;
 }
+
+.protocol-hint.hidden {
+    display: none !important;
+}
+
+/* Стили для подсказок - ДОБАВИТЬ В КОНЕЦ ФАЙЛА */
+.protocol-hint {
+    margin-top: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f3e8ff, #faf7ff);
+    border-radius: 12px;
+    font-size: 0.9em;
+    color: #5a2d8c;
+    border-left: 3px solid #8b5cf6;
+}
+
+.protocol-hint.hidden {
+    display: none !important;
+}
+
+.hint-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    color: #8b5cf6;
+    padding: 4px 8px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.hint-btn:hover {
+    transform: scale(1.1);
+    color: #7c3aed;
+}
+
+.protocol-hint {
+    margin-top: 12px;
+    padding: 12px;
+    background: linear-gradient(135deg, #f3e8ff, #faf7ff);
+    border-radius: 12px;
+    font-size: 0.9em;
+    color: #5a2d8c;
+    border-left: 3px solid #8b5cf6;
+}
+
+.protocol-hint.hidden {
+    display: none;
+}
+
+.badge-white {
+    font-size: 0.6em;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    padding: 4px 12px;
+    border-radius: 50px;
+    display: inline-block;
+    color: white;
+    font-weight: 600;
+    margin-left: 8px;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
