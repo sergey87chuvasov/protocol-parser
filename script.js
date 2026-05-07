@@ -9,59 +9,57 @@ let pdfText = '';
 let currentFilter = 'all';
 let lastLoadedFile = null;
 
-// Словарь подсказок для протоколов
+// ==================== //
+// СЛОВАРЬ ПОДСКАЗОК ДЛЯ ПРОТОКОЛОВ
+// ==================== //
 const protocolHints = {
-    'DHCP': 'Оборудование должно уметь автоматически получать IP от сервера. Без этого устройства придется настраивать вручную, что замедлит развертывание сети в сотни раз.',
+    'IP': 'Оборудование должно уметь работать с IP-адресами. Основа всей IP-сети — без поддержки IP оборудование просто не сможет работать в современных сетях.',
     
-    'ICMP-PING': 'Оборудование должно уметь отвечать на ICMP-запросы. Команда ping — первое что делает инженер при проверке связи, иначе диагностика станет невозможной.',
-    
-    'RIP': 'Оборудование должно уметь обмениваться маршрутами автоматически. Простой протокол для небольших сетей, где не нужен OSPF, но динамическая маршрутизация необходима.',
-    
-    'UDP': 'Оборудование должно уметь обрабатывать быстрые разрозненные пакеты. Без UDP не будет работать VoIP телефония, видеоконференции, DNS-запросы.',
-    
-    'TCP': 'Оборудование должно уметь устанавливать надежные соединения с подтверждением доставки. Без TCP не работают веб-интерфейсы, SSH, файловые передачи.',
-    
-    'TRACE-ROUTE': 'Оборудование должно уметь показывать маршрут прохождения пакетов. Без traceroute невозможно локализовать на каком именно маршрутизаторе теряются пакеты.',
-    
-    'DHCP-RELAY': 'Оборудование должно уметь перенаправлять DHCP-запросы в другие подсети. Без relay пришлось бы ставить свой DHCP сервер в каждой VLAN.',
-    
-    'SNMP': 'Оборудование должно уметь отдавать статистику через SNMP. Без этого невозможно собирать данные о загрузке CPU, трафике, ошибках портов через системы мониторинга.',
+    'ARP': 'Оборудование должно уметь преобразовывать IP в MAC-адреса. Основа работы Ethernet-сетей — без ARP устройства не узнают друг друга и не смогут общаться.',
     
     'VLAN': 'Оборудование должно уметь разделять сеть на изолированные сегменты. Без VLAN весь трафик виден всем устройствам, нет изоляции отделов и гостевых сетей.',
     
     'QinQ': 'Оборудование должно уметь делать двойное VLAN-тегирование. Технология провайдеров для разделения клиентов и прозрачной передачи их VLAN через магистраль.',
     
-    'HTTP-HTTPS': 'Оборудование должно уметь открывать веб-интерфейс управления. Без этого придется настраивать только через консоль или SSH, что менее удобно при быстрых изменениях.',
+    'ICMP-PING': 'Оборудование должно уметь отвечать на ICMP-запросы. Команда ping — первое что делает инженер при проверке связи, иначе диагностика станет невозможной.',
     
-    'DHCP-Snooping': 'Оборудование должно уметь фильтровать недоверенные DHCP-ответы. Защита от подмены DHCP-сервера, когда злоумышленник может перенаправить трафик на себя.',
+    'TRACE-ROUTE': 'Оборудование должно уметь показывать маршрут прохождения пакетов. Без traceroute невозможно локализовать на каком именно маршрутизаторе теряются пакеты.',
     
-    'DHCP IP Anti-Spoofing': 'Оборудование должно уметь проверять соответствие IP и MAC. Защита от подмены IP-адреса, когда злоумышленник выдает себя за легальное устройство.',
+    'DHCP': 'Оборудование должно уметь автоматически получать IP от сервера. Без этого устройства придется настраивать вручную, что замедлит развертывание сети в сотни раз.',
     
     'DHCP-SERVER': 'Оборудование должно уметь само раздавать IP-адреса. Встроенный сервер полезен для небольших офисов, где не хотят ставить отдельный DHCP-сервер.',
     
     'DHCP-Client': 'Оборудование должно уметь автоматически получать IP-адрес. Без этого режима при подключении к сети провайдера придется каждый раз запрашивать IP вручную.',
     
+    'DHCP-RELAY': 'Оборудование должно уметь перенаправлять DHCP-запросы в другие подсети. Без relay пришлось бы ставить свой DHCP сервер в каждой VLAN.',
+    
+    'DHCP-Snooping': 'Оборудование должно уметь фильтровать недоверенные DHCP-ответы. Защита от подмены DHCP-сервера, когда злоумышленник может перенаправить трафик на себя.',
+    
+    'DHCP IP Anti-Spoofing': 'Оборудование должно уметь проверять соответствие IP и MAC. Защита от подмены IP-адреса, когда злоумышленник выдает себя за легальное устройство.',
+    
+    'IGMP': 'Оборудование должно уметь управлять групповыми рассылками. Позволяет устройствам подписываться на мультикаст-потоки без лишнего трафика.',
+    
     'IGMP-SNOOPING': 'Оборудование должно уметь анализировать IGMP-запросы и отправлять мультикаст только нужным портам. Экономия трафика при IPTV — без snooping трафик идет во все порты.',
     
     'IGMP FAST Leave': 'Оборудование должно уметь мгновенно обрабатывать выход из мультикаст-группы. Мгновенное переключение каналов IPTV без задержек и лишней нагрузки на сеть.',
     
-    'IGMP ATTENTION': 'Оборудование должно уметь управлять групповыми рассылками. Позволяет устройствам подписываться на мультикаст-потоки без лишнего трафика.',
-    
-    'ARP': 'Оборудование должно уметь преобразовывать IP в MAC-адреса. Основа работы Ethernet-сетей — без ARP устройства не узнают друг друга и не смогут общаться.',
-    
     'IGMP-PROXY': 'Оборудование должно уметь объединять мультикаст-запросы от разных клиентов. Уменьшает нагрузку на вышестоящее оборудование, объединяя одинаковые запросы в один.',
     
-    'IPv4': 'Оборудование должно уметь работать с IP-адресами версии 4. Основа всей IP-сети — без поддержки IPv4 оборудование просто не сможет работать в современных сетях.',
-    
     'IGMP V3': 'Оборудование должно уметь фильтровать мультикаст по источникам. Современный стандарт для IPTV — позволяет получать видео только с разрешенных серверов.',
+    
+    'UDP': 'Оборудование должно уметь обрабатывать быстрые разрозненные пакеты. Без UDP не будет работать VoIP телефония, видеоконференции, DNS-запросы.',
+    
+    'TCP': 'Оборудование должно уметь устанавливать надежные соединения с подтверждением доставки. Без TCP не работают веб-интерфейсы, SSH, файловые передачи.',
     
     'RJ45': 'Оборудование должно уметь подключаться по медным портам. Самый массовый тип подключения — без RJ45 не подключить большинство офисных ПК, принтеров, IP-камер.',
     
     'SFP': 'Оборудование должно уметь подключаться по оптическим трансиверам. Без SFP не соединить коммутаторы на расстояние более 100 метров — важно для связи зданий и этажей.',
     
-    'WEB': 'Оборудование должно уметь управляться через веб-интерфейс. Ускоряет первичную настройку и диагностику, не требуя установки дополнительного ПО.',
+    'SNMP': 'Оборудование должно уметь отдавать статистику через SNMP. Без этого невозможно собирать данные о загрузке CPU, трафике, ошибках портов через системы мониторинга.',
     
-    'WEB-EWEB': 'Оборудование должно уметь предоставлять расширенный веб-интерфейс. Позволяет управлять ACL, QoS, VLAN через GUI, а не только через командную строку.'
+    'HTTP-HTTPS': 'Оборудование должно уметь открывать защищенный веб-интерфейс через HTTPS. Обеспечивает безопасное управление устройством из браузера с шифрованием трафика.',
+    
+    'WEB': 'Оборудование должно уметь управляться через веб-интерфейс. Ускоряет первичную настройку и диагностику, не требуя установки дополнительного ПО.'
 };
 
 // ==================== //
@@ -79,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== //
-// ЗАГРУЗКА СЛОВАРЯ
+// ЗАГРУЗКА СЛОВАРЯ (24 ПРОТОКОЛА)
 // ==================== //
 function loadProtocols() {
     const saved = localStorage.getItem('protocolsDictionary');
@@ -94,31 +92,30 @@ function loadProtocols() {
         }));
     } else {
         protocols = [
-            { id: 1, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер', 'DHCP-client', 'DHCP-клиент', 'BOOTP', 'Dynamic Ip Allocation', 'DHCP Client', 'DHCP Server'] },
-            { id: 2, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping', 'icmp ping', 'ping request', 'ping reply'] },
-            { id: 3, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'] },
-            { id: 4, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol'] },
-            { id: 5, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol'] },
+            { id: 1, name: 'IP', keywords: ['IP', 'Internet Protocol', 'IPv4', 'IP адрес', 'IP address'] },
+            { id: 2, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol'] },
+            { id: 3, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', 'Vxlan'] },
+            { id: 4, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
+            { id: 5, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping', 'icmp ping', 'ping request', 'ping reply'] },
             { id: 6, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'] },
-            { id: 7, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'] },
-            { id: 8, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
-            { id: 9, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', 'Vxlan'] },
-            { id: 10, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
-            { id: 11, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTPS', 'HTTP Secure', 'SSL', 'TLS', 'WEB', 'ВЕБ', 'ВЭБ', 'eweb', 'Eweb'] },
-            { id: 12, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
-            { id: 13, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'] },
-            { id: 14, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
-            { id: 15, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
-            { id: 16, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
-            { id: 17, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'] },
-            { id: 18, name: 'IGMP ATTENTION', keywords: ['IGMP', 'multicast'] },
-            { id: 19, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol'] },
-            { id: 20, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
-            { id: 21, name: 'IPv4', keywords: ['IPV4', 'IP', 'Internet Protocol'] },
-            { id: 22, name: 'IGMP V3', keywords: ['IGMP V3', 'IGMP VERSION 3', 'IGMP VERSION 2, 3', 'IGMPv1/v2/v3'] },
-            { id: 23, name: 'RJ45', keywords: ['RJ45', '1000base-t', '1000 base-t', 'ethernet', 'eth', 'copper'] },
-            { id: 24, name: 'SFP', keywords: ['SFP', 'SFP+', '1000 base-t', '1000base-x', '10g', 'fiber'] },
-            { id: 25, name: 'WEB', keywords: ['WEB', 'HTTP', 'HTTPS', 'eweb', 'Eweb', 'eWeb', 'web interface', 'gui'] }
+            { id: 7, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'Dynamic Ip Allocation'] },
+            { id: 8, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
+            { id: 9, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
+            { id: 10, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay', 'DHCP helper', 'ip helper-address'] },
+            { id: 11, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
+            { id: 12, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding', 'IP source guard'] },
+            { id: 13, name: 'IGMP', keywords: ['IGMP', 'multicast', 'IGMP v1', 'IGMP v2'] },
+            { id: 14, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
+            { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'fast leave', 'immediate leave'] },
+            { id: 16, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY', 'multicast proxy'] },
+            { id: 17, name: 'IGMP V3', keywords: ['IGMP V3', 'IGMP VERSION 3', 'IGMPv3', 'SSM'] },
+            { id: 18, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol'] },
+            { id: 19, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol'] },
+            { id: 20, name: 'RJ45', keywords: ['RJ45', '1000base-t', '1000 base-t', 'ethernet', 'eth', 'copper', 'UTP'] },
+            { id: 21, name: 'SFP', keywords: ['SFP', 'SFP+', '1000base-x', '10g', 'fiber', 'optical', 'optic'] },
+            { id: 22, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
+            { id: 23, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTPS', 'HTTP Secure', 'SSL', 'TLS'] },
+            { id: 24, name: 'WEB', keywords: ['WEB', 'ВЕБ', 'ВЭБ', 'web interface', 'gui', 'веб интерфейс', 'eweb', 'Eweb', 'eWeb'] }
         ];
     }
     
@@ -219,7 +216,7 @@ function analyzeText(text) {
 }
 
 // ==================== //
-// ОТОБРАЖЕНИЕ (С РАБОТАЮЩИМИ ПОДСКАЗКАМИ)
+// ОТОБРАЖЕНИЕ (ПОДСКАЗКИ ПО КЛИКУ НА КАРТОЧКУ)
 // ==================== //
 function renderProtocolsGrid() {
     const grid = document.getElementById('protocolsGrid');
@@ -272,15 +269,10 @@ function renderProtocolsGrid() {
         
         // Клик по карточке показывает/скрывает подсказку
         card.onclick = function(e) {
-            // Чтобы не срабатывало при клике на внутренние элементы
             if (e.target.closest('.status')) return;
             const hintDiv = document.getElementById(hintId);
             if (hintDiv) {
-                if (hintDiv.classList.contains('hidden')) {
-                    hintDiv.classList.remove('hidden');
-                } else {
-                    hintDiv.classList.add('hidden');
-                }
+                hintDiv.classList.toggle('hidden');
             }
         };
         
@@ -603,8 +595,8 @@ function generateDocxReport() {
         ` : ''}
         
         <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>─────────────────────────────────────────────────────────────</w:t></w:r></w:p>
-        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>📋 Отчет сгенерирован автоматически</w:t></w:r></w:p>
-        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="C4B5FD"/><w:i/><w:sz w:val="20"/></w:rPr><w:t>© 2026 ЦПЛ МЦК</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>📋 Отчет сгенерирован автоматически с помощью системы ProtoScan</w:t></w:r></w:p>
+        <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="C4B5FD"/><w:i/><w:sz w:val="20"/></w:rPr><w:t>© 2026 ЦПЛ МЦК | Система тестирования протоколов телекоммуникационного оборудования</w:t></w:r></w:p>
         
         <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>
     </w:body>
@@ -714,7 +706,7 @@ function initEventListeners() {
 }
 
 // ==================== //
-// СТИЛИ
+// СТИЛИ ДЛЯ ПОДСКАЗОК
 // ==================== //
 if (!document.querySelector('#dynamic-styles')) {
     const style = document.createElement('style');
@@ -727,6 +719,8 @@ if (!document.querySelector('#dynamic-styles')) {
             border-radius: 50px;
             display: inline-block;
             animation: pulse 2s ease-in-out infinite;
+            color: white !important;
+            font-weight: 600;
         }
         @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 1; }
@@ -764,9 +758,6 @@ if (!document.querySelector('#dynamic-styles')) {
             from { transform: translateX(0); opacity: 1; }
             to { transform: translateX(100%); opacity: 0; }
         }
-        .hint-btn {
-            cursor: pointer;
-        }
         .protocol-hint {
             margin-top: 12px;
             padding: 12px;
@@ -782,19 +773,3 @@ if (!document.querySelector('#dynamic-styles')) {
     `;
     document.head.appendChild(style);
 }
-
-
-// ТЕСТОВЫЙ ОБРАБОТЧИК - ПРОВЕРКА РАБОТЫ
-setTimeout(function() {
-    console.log('Проверка кнопок...');
-    const btns = document.querySelectorAll('.hint-btn');
-    console.log('Найдено кнопок:', btns.length);
-    
-    for (let i = 0; i < btns.length; i++) {
-        btns[i].onclick = function(e) {
-            e.stopPropagation();
-            alert('Кнопка работает! ID: ' + this.getAttribute('data-hint'));
-            return false;
-        };
-    }
-}, 1000);
