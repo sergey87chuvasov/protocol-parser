@@ -66,6 +66,9 @@
                 <button class="filter-btn active" data-filter="all">Все протоколы</button>
                 <button class="filter-btn" data-filter="found">Найденные</button>
                 <button class="filter-btn" data-filter="notFound">Не найденные</button>
+                <button class="filter-btn" id="addProtocolBtn" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
+                    <i class="fas fa-plus"></i> Добавить протокол
+                </button>
             </div>
             
             <div class="protocols-grid" id="protocolsGrid"></div>
@@ -85,7 +88,7 @@
                 <div class="footer-section">
                     <h4><i class="fas fa-toolbox"></i> ProtoScan</h4>
                     <p>Инструмент для анализа даташитов оборудования</p>
-                    <p>Версия 2.1.0</p>
+                    <p>Версия 2.2.0</p>
                 </div>
                 <div class="footer-section">
                     <h4><i class="fas fa-code"></i> Технологии</h4>
@@ -104,6 +107,28 @@
         </footer>
     </div>
 
+    <!-- Модальное окно для добавления протокола -->
+    <div class="modal hidden" id="addProtocolModal">
+        <div class="modal-content" style="max-width: 450px;">
+            <h3>➕ Добавить протокол</h3>
+            <div class="form-group">
+                <label>Название протокола:</label>
+                <input type="text" id="newProtocolName" placeholder="Например: LoRaWAN">
+                
+                <label>Ключевые слова (через запятую):</label>
+                <input type="text" id="newProtocolKeywords" placeholder="LoRaWAN, LoRa, LoraWAN">
+                
+                <label>Описание (необязательно):</label>
+                <textarea id="newProtocolDesc" rows="3" placeholder="Для чего нужен этот протокол..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn" id="confirmAddProtocolBtn">Добавить</button>
+                <button class="btn secondary-btn" id="closeAddModalBtn">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для настройки отчета -->
     <div class="modal hidden" id="templateModal">
         <div class="modal-content">
             <h3>Настройка отчета</h3>

@@ -1164,3 +1164,21 @@ header .subtitle {
     margin-left: 8px;
     box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
 }
+
+/* Стили для кнопки удаления */
+.delete-protocol-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #e53e3e;
+    font-size: 0.9em;
+    padding: 4px 8px;
+    border-radius: 20px;
+    transition: all 0.2s;
+}
+
+.delete-protocol-btn:hover {
+    transform: scale(1.1);
+    color: #c53030;
+    background: rgba(229, 62, 62, 0.1);
+}

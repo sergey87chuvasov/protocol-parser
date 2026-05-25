@@ -9,58 +9,41 @@ let pdfText = '';
 let currentFilter = 'all';
 let lastLoadedFile = null;
 
-// ==================== //
-// СЛОВАРЬ ПОДСКАЗОК ДЛЯ ПРОТОКОЛОВ
-// ==================== //
-const protocolHints = {
-    'IP': 'Оборудование должно уметь работать с IP-адресами. Основа всей IP-сети — без поддержки IP оборудование просто не сможет работать в современных сетях.',
-    
-    'ARP': 'Оборудование должно уметь преобразовывать IP в MAC-адреса. Основа работы Ethernet-сетей — без ARP устройства не узнают друг друга и не смогут общаться.',
-    
-    'VLAN': 'Оборудование должно уметь разделять сеть на изолированные сегменты. Без VLAN весь трафик виден всем устройствам, нет изоляции отделов и гостевых сетей.',
-    
-    'QinQ': 'Оборудование должно уметь делать двойное VLAN-тегирование. Технология провайдеров для разделения клиентов и прозрачной передачи их VLAN через магистраль.',
-    
-    'ICMP-PING': 'Оборудование должно уметь отвечать на ICMP-запросы. Команда ping — первое что делает инженер при проверке связи, иначе диагностика станет невозможной.',
-    
-    'TRACE-ROUTE': 'Оборудование должно уметь показывать маршрут прохождения пакетов. Без traceroute невозможно локализовать на каком именно маршрутизаторе теряются пакеты.',
-    
-    'DHCP': 'Оборудование должно уметь автоматически получать IP от сервера. Без этого устройства придется настраивать вручную, что замедлит развертывание сети в сотни раз.',
-    
-    'DHCP-SERVER': 'Оборудование должно уметь само раздавать IP-адреса. Встроенный сервер полезен для небольших офисов, где не хотят ставить отдельный DHCP-сервер.',
-    
-    'DHCP-Client': 'Оборудование должно уметь автоматически получать IP-адрес. Без этого режима при подключении к сети провайдера придется каждый раз запрашивать IP вручную.',
-    
-    'DHCP-RELAY': 'Оборудование должно уметь перенаправлять DHCP-запросы в другие подсети. Без relay пришлось бы ставить свой DHCP сервер в каждой VLAN.',
-    
-    'DHCP-Snooping': 'Оборудование должно уметь фильтровать недоверенные DHCP-ответы. Защита от подмены DHCP-сервера, когда злоумышленник может перенаправить трафик на себя.',
-    
-    'DHCP IP Anti-Spoofing': 'Оборудование должно уметь проверять соответствие IP и MAC. Защита от подмены IP-адреса, когда злоумышленник выдает себя за легальное устройство.',
-    
-    'IGMP': 'Оборудование должно уметь управлять групповыми рассылками. Позволяет устройствам подписываться на мультикаст-потоки без лишнего трафика.',
-    
-    'IGMP-SNOOPING': 'Оборудование должно уметь анализировать IGMP-запросы и отправлять мультикаст только нужным портам. Экономия трафика при IPTV — без snooping трафик идет во все порты.',
-    
-    'IGMP FAST Leave': 'Оборудование должно уметь мгновенно обрабатывать выход из мультикаст-группы. Мгновенное переключение каналов IPTV без задержек и лишней нагрузки на сеть.',
-    
-    'IGMP-PROXY': 'Оборудование должно уметь объединять мультикаст-запросы от разных клиентов. Уменьшает нагрузку на вышестоящее оборудование, объединяя одинаковые запросы в один.',
-    
-    'IGMP V3': 'Оборудование должно уметь фильтровать мультикаст по источникам. Современный стандарт для IPTV — позволяет получать видео только с разрешенных серверов.',
-    
-    'UDP': 'Оборудование должно уметь обрабатывать быстрые разрозненные пакеты. Без UDP не будет работать VoIP телефония, видеоконференции, DNS-запросы.',
-    
-    'TCP': 'Оборудование должно уметь устанавливать надежные соединения с подтверждением доставки. Без TCP не работают веб-интерфейсы, SSH, файловые передачи.',
-    
-    'RJ45': 'Оборудование должно уметь подключаться по медным портам. Самый массовый тип подключения — без RJ45 не подключить большинство офисных ПК, принтеров, IP-камер.',
-    
-    'SFP': 'Оборудование должно уметь подключаться по оптическим трансиверам. Без SFP не соединить коммутаторы на расстояние более 100 метров — важно для связи зданий и этажей.',
-    
-    'SNMP': 'Оборудование должно уметь отдавать статистику через SNMP. Без этого невозможно собирать данные о загрузке CPU, трафике, ошибках портов через системы мониторинга.',
-    
-    'HTTP-HTTPS': 'Оборудование должно уметь открывать защищенный веб-интерфейс через HTTPS. Обеспечивает безопасное управление устройством из браузера с шифрованием трафика.',
-    
-    'WEB': 'Оборудование должно уметь управляться через веб-интерфейс. Ускоряет первичную настройку и диагностику, не требуя установки дополнительного ПО.'
+// Словарь подсказок для базовых протоколов (пользовательские будут добавляться динамически)
+const baseProtocolHints = {
+    'IP': 'Оборудование должно уметь работать с IP-адресами. Основа всей IP-сети.',
+    'ARP': 'Оборудование должно уметь преобразовывать IP в MAC-адреса. Основа работы Ethernet-сетей.',
+    'VLAN': 'Оборудование должно уметь разделять сеть на изолированные сегменты. Без VLAN весь трафик виден всем.',
+    'QinQ': 'Оборудование должно уметь делать двойное VLAN-тегирование. Технология провайдеров.',
+    'ICMP-PING': 'Оборудование должно уметь отвечать на ICMP-запросы. Команда ping — первое что делает инженер.',
+    'TRACE-ROUTE': 'Оборудование должно уметь показывать маршрут прохождения пакетов.',
+    'DHCP': 'Оборудование должно уметь автоматически получать IP от сервера.',
+    'DHCP-SERVER': 'Оборудование должно уметь само раздавать IP-адреса.',
+    'DHCP-Client': 'Оборудование должно уметь автоматически получать IP-адрес.',
+    'DHCP-RELAY': 'Оборудование должно уметь перенаправлять DHCP-запросы в другие подсети.',
+    'DHCP-Snooping': 'Оборудование должно уметь фильтровать недоверенные DHCP-ответы.',
+    'DHCP IP Anti-Spoofing': 'Оборудование должно уметь проверять соответствие IP и MAC.',
+    'IGMP': 'Оборудование должно уметь управлять групповыми рассылками.',
+    'IGMP-SNOOPING': 'Оборудование должно уметь анализировать IGMP-запросы.',
+    'IGMP FAST Leave': 'Оборудование должно уметь мгновенно обрабатывать выход из мультикаст-группы.',
+    'IGMP-PROXY': 'Оборудование должно уметь объединять мультикаст-запросы.',
+    'IGMP V3': 'Оборудование должно уметь фильтровать мультикаст по источникам.',
+    'UDP': 'Оборудование должно уметь обрабатывать быстрые разрозненные пакеты.',
+    'TCP': 'Оборудование должно уметь устанавливать надежные соединения.',
+    'RJ45': 'Оборудование должно уметь подключаться по медным портам.',
+    'SFP': 'Оборудование должно уметь подключаться по оптическим трансиверам.',
+    'SNMP': 'Оборудование должно уметь отдавать статистику через SNMP.',
+    'HTTP-HTTPS': 'Оборудование должно уметь открывать защищенный веб-интерфейс.',
+    'WEB': 'Оборудование должно уметь управляться через веб-интерфейс.'
 };
+
+// Функция получения подсказки
+function getProtocolHint(protocolName, customDesc) {
+    if (customDesc && customDesc.trim() !== '') {
+        return customDesc;
+    }
+    return baseProtocolHints[protocolName] || '📖 Пользовательский протокол. Добавьте описание для подсказки.';
+}
 
 // ==================== //
 // ИНИЦИАЛИЗАЦИЯ
@@ -77,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== //
-// ЗАГРУЗКА СЛОВАРЯ (24 ПРОТОКОЛА)
+// ЗАГРУЗКА СЛОВАРЯ
 // ==================== //
 function loadProtocols() {
     const saved = localStorage.getItem('protocolsDictionary');
@@ -87,35 +70,36 @@ function loadProtocols() {
             id: protocol.id,
             name: protocol.name,
             keywords: protocol.keywords,
+            description: protocol.description || '',
             found: false,
             foundKeywords: []
         }));
     } else {
         protocols = [
-            { id: 1, name: 'IP', keywords: ['IP', 'Internet Protocol', 'IPv4', 'IP адрес', 'IP address'] },
-            { id: 2, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol'] },
-            { id: 3, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', 'Vxlan'] },
-            { id: 4, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
-            { id: 5, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping', 'icmp ping', 'ping request', 'ping reply'] },
-            { id: 6, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'] },
-            { id: 7, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'Dynamic Ip Allocation'] },
-            { id: 8, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
-            { id: 9, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
-            { id: 10, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay', 'DHCP helper', 'ip helper-address'] },
-            { id: 11, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
-            { id: 12, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding', 'IP source guard'] },
-            { id: 13, name: 'IGMP', keywords: ['IGMP', 'multicast', 'IGMP v1', 'IGMP v2'] },
-            { id: 14, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
-            { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'fast leave', 'immediate leave'] },
-            { id: 16, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY', 'multicast proxy'] },
-            { id: 17, name: 'IGMP V3', keywords: ['IGMP V3', 'IGMP VERSION 3', 'IGMPv3', 'SSM'] },
-            { id: 18, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol'] },
-            { id: 19, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol'] },
-            { id: 20, name: 'RJ45', keywords: ['RJ45', '1000base-t', '1000 base-t', 'ethernet', 'eth', 'copper', 'UTP'] },
-            { id: 21, name: 'SFP', keywords: ['SFP', 'SFP+', '1000base-x', '10g', 'fiber', 'optical', 'optic'] },
-            { id: 22, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
-            { id: 23, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTPS', 'HTTP Secure', 'SSL', 'TLS'] },
-            { id: 24, name: 'WEB', keywords: ['WEB', 'ВЕБ', 'ВЭБ', 'web interface', 'gui', 'веб интерфейс', 'eweb', 'Eweb', 'eWeb'] }
+            { id: 1, name: 'IP', keywords: ['IP', 'Internet Protocol', 'IPv4', 'IP адрес', 'IP address'], description: '' },
+            { id: 2, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol'], description: '' },
+            { id: 3, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', 'Vxlan'], description: '' },
+            { id: 4, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'], description: '' },
+            { id: 5, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', 'ping', 'icmp ping', 'ping request', 'ping reply'], description: '' },
+            { id: 6, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'], description: '' },
+            { id: 7, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'Dynamic Ip Allocation'], description: '' },
+            { id: 8, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'], description: '' },
+            { id: 9, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'], description: '' },
+            { id: 10, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay', 'DHCP helper', 'ip helper-address'], description: '' },
+            { id: 11, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'], description: '' },
+            { id: 12, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding', 'IP source guard'], description: '' },
+            { id: 13, name: 'IGMP', keywords: ['IGMP', 'multicast', 'IGMP v1', 'IGMP v2'], description: '' },
+            { id: 14, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'], description: '' },
+            { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'fast leave', 'immediate leave'], description: '' },
+            { id: 16, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY', 'multicast proxy'], description: '' },
+            { id: 17, name: 'IGMP V3', keywords: ['IGMP V3', 'IGMP VERSION 3', 'IGMPv3', 'SSM'], description: '' },
+            { id: 18, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol'], description: '' },
+            { id: 19, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol'], description: '' },
+            { id: 20, name: 'RJ45', keywords: ['RJ45', '1000base-t', '1000 base-t', 'ethernet', 'eth', 'copper', 'UTP'], description: '' },
+            { id: 21, name: 'SFP', keywords: ['SFP', 'SFP+', '1000base-x', '10g', 'fiber', 'optical', 'optic'], description: '' },
+            { id: 22, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'], description: '' },
+            { id: 23, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTPS', 'HTTP Secure', 'SSL', 'TLS'], description: '' },
+            { id: 24, name: 'WEB', keywords: ['WEB', 'ВЕБ', 'ВЭБ', 'web interface', 'gui', 'веб интерфейс', 'eweb', 'Eweb', 'eWeb'], description: '' }
         ];
     }
     
@@ -129,17 +113,91 @@ function saveProtocols() {
     const protocolsToSave = protocols.map(protocol => ({
         id: protocol.id,
         name: protocol.name,
-        keywords: protocol.keywords
+        keywords: protocol.keywords,
+        description: protocol.description || ''
     }));
     localStorage.setItem('protocolsDictionary', JSON.stringify(protocolsToSave));
 }
 
 // ==================== //
-// ОЧИСТКА ТЕКСТА ОТ ССЫЛОК
+// ДОБАВЛЕНИЕ ПРОТОКОЛА
+// ==================== //
+function openAddProtocolModal() {
+    document.getElementById('addProtocolModal').classList.remove('hidden');
+}
+
+function closeAddProtocolModal() {
+    document.getElementById('addProtocolModal').classList.add('hidden');
+    document.getElementById('newProtocolName').value = '';
+    document.getElementById('newProtocolKeywords').value = '';
+    document.getElementById('newProtocolDesc').value = '';
+}
+
+function addNewProtocol() {
+    const name = document.getElementById('newProtocolName').value.trim();
+    const keywordsStr = document.getElementById('newProtocolKeywords').value.trim();
+    const description = document.getElementById('newProtocolDesc').value.trim();
+    
+    if (!name) {
+        alert('Введите название протокола');
+        return;
+    }
+    
+    if (!keywordsStr) {
+        alert('Введите ключевые слова через запятую');
+        return;
+    }
+    
+    if (protocols.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        alert('Протокол с таким названием уже существует');
+        return;
+    }
+    
+    const keywords = keywordsStr.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    const newId = Math.max(...protocols.map(p => p.id), 0) + 1;
+    
+    protocols.push({
+        id: newId,
+        name: name,
+        keywords: keywords,
+        description: description,
+        found: false,
+        foundKeywords: []
+    });
+    
+    saveProtocols();
+    closeAddProtocolModal();
+    renderProtocolsGrid();
+    updateStats();
+    showNotification(`Протокол "${name}" добавлен!`);
+}
+
+// ==================== //
+// УДАЛЕНИЕ ПРОТОКОЛА
+// ==================== //
+function deleteProtocolById(protocolId) {
+    const protocol = protocols.find(p => p.id === protocolId);
+    if (!protocol) return;
+    
+    if (protocol.id <= 24) {
+        alert('Базовые протоколы нельзя удалить');
+        return;
+    }
+    
+    if (confirm(`Удалить протокол "${protocol.name}"?`)) {
+        protocols = protocols.filter(p => p.id !== protocolId);
+        saveProtocols();
+        renderProtocolsGrid();
+        updateStats();
+        showNotification(`Протокол "${protocol.name}" удален`);
+    }
+}
+
+// ==================== //
+// ОЧИСТКА ТЕКСТА
 // ==================== //
 function cleanTextFromUrls(text) {
     if (!text) return '';
-    
     let cleaned = text;
     cleaned = cleaned.replace(/https?:\/\/[^\s<>"'\]]+/gi, '');
     cleaned = cleaned.replace(/www\.[^\s<>"'\]]+/gi, '');
@@ -216,7 +274,7 @@ function analyzeText(text) {
 }
 
 // ==================== //
-// ОТОБРАЖЕНИЕ (ПОДСКАЗКИ ПО КЛИКУ НА КАРТОЧКУ)
+// ОТОБРАЖЕНИЕ С КНОПКОЙ УДАЛЕНИЯ
 // ==================== //
 function renderProtocolsGrid() {
     const grid = document.getElementById('protocolsGrid');
@@ -240,7 +298,7 @@ function renderProtocolsGrid() {
         const card = document.createElement('div');
         card.className = `protocol-card ${protocol.found ? 'found' : ''}`;
         
-        const hint = protocolHints[protocol.name] || '📖 Помощь по протоколу временно недоступна';
+        const hint = getProtocolHint(protocol.name, protocol.description);
         const hintId = `hint-${protocol.id}`;
         
         const keywordsHtml = protocol.foundKeywords && protocol.foundKeywords.length > 0 
@@ -249,12 +307,22 @@ function renderProtocolsGrid() {
                </div>`
             : '';
         
+        // Кнопка удаления только для пользовательских протоколов
+        const deleteBtn = protocol.id > 24 
+            ? `<button class="delete-protocol-btn" data-id="${protocol.id}" title="Удалить протокол">
+                 <i class="fas fa-trash"></i>
+               </button>`
+            : '';
+        
         card.innerHTML = `
             <h4>
                 ${escapeHtml(protocol.name)}
-                <span class="status ${protocol.found ? 'found' : 'not-found'}">
-                    ${protocol.found ? '✓ Найден' : '✗ Не найден'}
-                </span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="status ${protocol.found ? 'found' : 'not-found'}">
+                        ${protocol.found ? '✓ Найден' : '✗ Не найден'}
+                    </span>
+                    ${deleteBtn}
+                </div>
             </h4>
             <div class="keywords">
                 <strong>📝 Ключевые слова:</strong><br>
@@ -270,6 +338,7 @@ function renderProtocolsGrid() {
         // Клик по карточке показывает/скрывает подсказку
         card.onclick = function(e) {
             if (e.target.closest('.status')) return;
+            if (e.target.closest('.delete-protocol-btn')) return;
             const hintDiv = document.getElementById(hintId);
             if (hintDiv) {
                 hintDiv.classList.toggle('hidden');
@@ -277,6 +346,15 @@ function renderProtocolsGrid() {
         };
         
         grid.appendChild(card);
+    });
+    
+    // Обработчики для кнопок удаления
+    document.querySelectorAll('.delete-protocol-btn').forEach(btn => {
+        btn.onclick = function(e) {
+            e.stopPropagation();
+            const id = parseInt(this.getAttribute('data-id'));
+            deleteProtocolById(id);
+        };
     });
 }
 
@@ -295,13 +373,9 @@ function updateStats() {
     const totalCount = protocols.length;
     const matchPercent = totalCount > 0 ? Math.round((foundCount / totalCount) * 100) : 0;
     
-    const foundCountEl = document.getElementById('foundCount');
-    const totalCountEl = document.getElementById('totalCount');
-    const matchPercentEl = document.getElementById('matchPercent');
-    
-    if (foundCountEl) foundCountEl.textContent = foundCount;
-    if (totalCountEl) totalCountEl.textContent = totalCount;
-    if (matchPercentEl) matchPercentEl.textContent = `${matchPercent}%`;
+    document.getElementById('foundCount').textContent = foundCount;
+    document.getElementById('totalCount').textContent = totalCount;
+    document.getElementById('matchPercent').textContent = `${matchPercent}%`;
 }
 
 // ==================== //
@@ -310,7 +384,6 @@ function updateStats() {
 async function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
     resetAnalysisResults(true);
     
     if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
@@ -324,12 +397,10 @@ async function handleFileUpload(event) {
 
 async function parsePDFFile(file) {
     showLoading(true);
-    
     try {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const numPages = pdf.numPages;
-        
         let fullText = '';
         
         for (let pageNum = 1; pageNum <= numPages; pageNum++) {
@@ -345,7 +416,6 @@ async function parsePDFFile(file) {
         showLoading(false);
         analyzeText(pdfText);
         showNotification(`PDF успешно загружен! Проанализировано ${numPages} страниц.`);
-        
     } catch (error) {
         showLoading(false);
         console.error('Ошибка при чтении PDF:', error);
@@ -373,7 +443,6 @@ function parseManualText() {
         alert('Введите текст для анализа');
         return;
     }
-    
     resetAnalysisResults(true);
     pdfText = text;
     lastLoadedFile = null;
@@ -382,24 +451,19 @@ function parseManualText() {
 }
 
 // ==================== //
-// UI ВСПОМОГАТЕЛЬНЫЕ
+// UI
 // ==================== //
 function showLoading(show) {
     const loading = document.getElementById('pdfLoading');
     if (loading) {
-        if (show) {
-            loading.classList.remove('hidden');
-        } else {
-            loading.classList.add('hidden');
-        }
+        if (show) loading.classList.remove('hidden');
+        else loading.classList.add('hidden');
     }
 }
 
 function updateProgress(percent) {
     const progressText = document.getElementById('progressText');
-    if (progressText) {
-        progressText.textContent = `${percent}%`;
-    }
+    if (progressText) progressText.textContent = `${percent}%`;
 }
 
 function showNotification(message) {
@@ -421,8 +485,7 @@ function showNotification(message) {
 // ГЕНЕРАЦИЯ DOCX
 // ==================== //
 function openTemplateModal() {
-    const modal = document.getElementById('templateModal');
-    if (modal) modal.classList.remove('hidden');
+    document.getElementById('templateModal').classList.remove('hidden');
 }
 
 function generateDocxReport() {
@@ -446,20 +509,33 @@ function generateDocxReport() {
     <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
     <Default Extension="xml" ContentType="application/xml"/>
     <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+    <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 </Types>`);
-        
+
         zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
     <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`);
-        
+
         zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
 </Relationships>`);
-        
+
+        zip.file("word/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+    <w:docDefaults>
+        <w:rPrDefault>
+            <w:rPr>
+                <w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>
+                <w:sz w:val="24"/>
+            </w:rPr>
+        </w:rPrDefault>
+    </w:docDefaults>
+</w:styles>`);
+
         let foundRows = '';
         foundProtocols.forEach((p, idx) => {
-            const hint = protocolHints[p.name] || 'Нет описания';
+            const hint = getProtocolHint(p.name, p.description);
             foundRows += `
             <w:tr>
                 <w:tc><w:tcW w:w="500" w:type="dxa"/><w:p><w:r><w:t>${idx + 1}</w:t></w:r></w:p></w:tc>
@@ -479,10 +555,7 @@ function generateDocxReport() {
             </w:tr>`;
         });
         
-        let percentColor = 'EF4444';
-        if (percent >= 80) percentColor = '16A34A';
-        else if (percent >= 60) percentColor = 'EAB308';
-        else if (percent >= 40) percentColor = 'F97316';
+        let percentColor = percent >= 80 ? '16A34A' : (percent >= 60 ? 'EAB308' : (percent >= 40 ? 'F97316' : 'EF4444'));
         
         const docContent = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
@@ -611,8 +684,7 @@ function generateDocxReport() {
         }).then(function(content) {
             const filename = `Protocol_Report_${deviceModel.replace(/[^a-zA-Z0-9]/g, '_')}_${testDate}.docx`;
             saveAs(content, filename);
-            const modal = document.getElementById('templateModal');
-            if (modal) modal.classList.add('hidden');
+            document.getElementById('templateModal').classList.add('hidden');
             showNotification('DOCX отчет успешно создан!');
         }).catch(function(error) {
             console.error('Ошибка:', error);
@@ -636,68 +708,39 @@ function escapeXml(text) {
 }
 
 // ==================== //
-// ОБРАБОТЧИКИ СОБЫТИЙ
+// ОБРАБОТЧИКИ
 // ==================== //
 function initEventListeners() {
-    const selectFileBtn = document.getElementById('selectFileBtn');
-    if (selectFileBtn) {
-        selectFileBtn.addEventListener('click', () => document.getElementById('fileInput').click());
-    }
-    
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', handleFileUpload);
-        fileInput.addEventListener('click', function() { this.value = null; });
-    }
+    document.getElementById('selectFileBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+    document.getElementById('fileInput').addEventListener('click', function() { this.value = null; });
     
     const dropArea = document.getElementById('dropArea');
-    if (dropArea) {
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '#f5f0ff';
-        });
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.style.background = '#faf7ff';
-        });
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '#faf7ff';
-            const file = e.dataTransfer.files[0];
-            if (file) parsePDFFile(file);
-        });
-    }
+    dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.style.background = '#f5f0ff'; });
+    dropArea.addEventListener('dragleave', () => { dropArea.style.background = '#faf7ff'; });
+    dropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropArea.style.background = '#faf7ff';
+        const file = e.dataTransfer.files[0];
+        if (file) parsePDFFile(file);
+    });
     
-    const parseTextBtn = document.getElementById('parseTextBtn');
-    if (parseTextBtn) {
-        parseTextBtn.addEventListener('click', parseManualText);
-    }
+    document.getElementById('parseTextBtn').addEventListener('click', parseManualText);
+    document.getElementById('exportDocxBtn').addEventListener('click', openTemplateModal);
+    document.getElementById('resetAnalysisBtn').addEventListener('click', fullReset);
+    document.getElementById('closeTemplateBtn').addEventListener('click', () => document.getElementById('templateModal').classList.add('hidden'));
+    document.getElementById('generateDocxBtn').addEventListener('click', generateDocxReport);
     
-    const exportDocxBtn = document.getElementById('exportDocxBtn');
-    if (exportDocxBtn) {
-        exportDocxBtn.addEventListener('click', openTemplateModal);
-    }
+    // Добавление протокола
+    document.getElementById('addProtocolBtn').addEventListener('click', openAddProtocolModal);
+    document.getElementById('closeAddModalBtn').addEventListener('click', closeAddProtocolModal);
+    document.getElementById('confirmAddProtocolBtn').addEventListener('click', addNewProtocol);
     
-    const resetBtn = document.getElementById('resetAnalysisBtn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', fullReset);
-    }
-    
-    const closeTemplateBtn = document.getElementById('closeTemplateBtn');
-    if (closeTemplateBtn) {
-        closeTemplateBtn.addEventListener('click', () => {
-            document.getElementById('templateModal').classList.add('hidden');
-        });
-    }
-    
-    const generateDocxBtn = document.getElementById('generateDocxBtn');
-    if (generateDocxBtn) {
-        generateDocxBtn.addEventListener('click', generateDocxReport);
-    }
-    
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    filterBtns.forEach(btn => {
+    // Фильтры
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.id === 'addProtocolBtn') return;
         btn.addEventListener('click', function() {
-            filterBtns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             currentFilter = this.getAttribute('data-filter');
             renderProtocolsGrid();
@@ -706,70 +749,21 @@ function initEventListeners() {
 }
 
 // ==================== //
-// СТИЛИ ДЛЯ ПОДСКАЗОК
+// СТИЛИ
 // ==================== //
 if (!document.querySelector('#dynamic-styles')) {
     const style = document.createElement('style');
     style.id = 'dynamic-styles';
     style.textContent = `
-        .badge-glow {
-            font-size: 0.6em;
-            background: linear-gradient(135deg, #8b5cf6, #c084fc);
-            padding: 4px 12px;
-            border-radius: 50px;
-            display: inline-block;
-            animation: pulse 2s ease-in-out infinite;
-            color: white !important;
-            font-weight: 600;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.9; }
-        }
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: linear-gradient(135deg, #faf7ff, #f3eaff);
-            border-radius: 20px;
-            color: #9b6ddf;
-            font-size: 1.1em;
-            grid-column: 1 / -1;
-            border: 2px dashed rgba(139, 92, 246, 0.3);
-        }
-        .notification-toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            padding: 14px 28px;
-            border-radius: 50px;
-            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4);
-            z-index: 1000;
-            animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            font-size: 14px;
-            font-weight: 500;
-        }
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-        .protocol-hint {
-            margin-top: 12px;
-            padding: 12px;
-            background: linear-gradient(135deg, #f3e8ff, #faf7ff);
-            border-radius: 12px;
-            font-size: 0.9em;
-            color: #5a2d8c;
-            border-left: 3px solid #8b5cf6;
-        }
-        .protocol-hint.hidden {
-            display: none;
-        }
+        .protocol-hint { margin-top: 12px; padding: 12px; background: linear-gradient(135deg, #f3e8ff, #faf7ff); border-radius: 12px; font-size: 0.9em; color: #5a2d8c; border-left: 3px solid #8b5cf6; }
+        .protocol-hint.hidden { display: none; }
+        .delete-protocol-btn { background: none; border: none; cursor: pointer; color: #e53e3e; font-size: 0.9em; padding: 4px 8px; border-radius: 20px; transition: all 0.2s; }
+        .delete-protocol-btn:hover { transform: scale(1.1); color: #c53030; background: rgba(229,62,62,0.1); }
+        .notification-toast { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 14px 28px; border-radius: 50px; box-shadow: 0 10px 30px rgba(139,92,246,0.4); z-index: 1000; animation: slideInRight 0.4s; font-size: 14px; font-weight: 500; }
+        .empty-state { text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #faf7ff, #f3eaff); border-radius: 20px; color: #9b6ddf; grid-column: 1/-1; border: 2px dashed rgba(139,92,246,0.3); }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        .badge-white { font-size: 0.6em; background: linear-gradient(135deg, #8b5cf6, #7c3aed); padding: 4px 12px; border-radius: 50px; display: inline-block; color: white; font-weight: 600; margin-left: 8px; box-shadow: 0 2px 8px rgba(139,92,246,0.3); }
     `;
     document.head.appendChild(style);
 }
