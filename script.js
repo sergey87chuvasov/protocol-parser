@@ -379,14 +379,14 @@ function initEventListeners() {
     const forceDeleteBtn = document.getElementById('forceDeleteAllBtn');
     if (forceDeleteBtn) {
         forceDeleteBtn.addEventListener('click', () => {
-            const userProtocols = protocols.filter(p => p.id > 24);
+            const userProtocols = protocols.filter(p => p.id > 25);
             const count = userProtocols.length;
             if (count === 0) {
                 alert('❌ Нет добавленных протоколов для удаления');
                 return;
             }
             if (confirm(`🗑 Удалить ВСЕ добавленные протоколы (${count} шт.)? Базовые 24 протокола останутся.`)) {
-                protocols = protocols.filter(p => p.id <= 24);
+                protocols = protocols.filter(p => p.id <= 25);
                 saveProtocols();
                 renderProtocolsGrid();
                 updateStats();
