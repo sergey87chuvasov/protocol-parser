@@ -54,32 +54,33 @@ function loadProtocols() {
             found: false, foundKeywords: []
         }));
     } else {
-        protocols = [
-            { id: 1, name: 'IP', keywords: ['IP', 'Internet Protocol', 'IPv4'], description: '' },
-            { id: 2, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol'], description: '' },
-            { id: 3, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q'], description: '' },
-            { id: 4, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', '802.1ad'], description: '' },
-            { id: 5, name: 'ICMP-PING', keywords: ['ICMP', 'ping', 'icmp ping'], description: '' },
-            { id: 6, name: 'TRACE-ROUTE', keywords: ['traceroute', 'tracert'], description: '' },
-            { id: 7, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol'], description: '' },
-            { id: 8, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP сервер'], description: '' },
-            { id: 9, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP клиент'], description: '' },
-            { id: 10, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'], description: '' },
-            { id: 11, name: 'DHCP-Snooping', keywords: ['DHCP snooping'], description: '' },
-            { id: 12, name: 'DHCP IP Anti-Spoofing', keywords: ['source-guard', 'Binding'], description: '' },
-            { id: 13, name: 'IGMP', keywords: ['IGMP', 'multicast'], description: '' },
-            { id: 14, name: 'IGMP-SNOOPING', keywords: ['IGMP SNOOPING'], description: '' },
-            { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'], description: '' },
-            { id: 16, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY'], description: '' },
-            { id: 17, name: 'IGMP V3', keywords: ['IGMP V3', 'IGMPv3'], description: '' },
-            { id: 18, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol'], description: '' },
-            { id: 19, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol'], description: '' },
-            { id: 20, name: 'RJ45', keywords: ['RJ45', 'ethernet', 'copper'], description: '' },
-            { id: 21, name: 'SFP', keywords: ['SFP', 'fiber', 'optical'], description: '' },
-            { id: 22, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol'], description: '' },
-            { id: 23, name: 'HTTP-HTTPS', keywords: ['HTTP', 'HTTPS', 'SSL', 'TLS'], description: '' },
-            { id: 24, name: 'WEB', keywords: ['WEB', 'web interface', 'gui', 'eweb'], description: '' }
-        ];
+     protocols = [
+    { id: 1, name: 'IP', keywords: ['IPV4','IP','Internet Protocol'] },
+    { id: 2, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'] },
+    { id: 3, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"] },
+    { id: 4, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
+    { id: 5, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping'] },
+    { id: 6, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'] },
+    { id: 7, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
+    { id: 8, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
+    { id: 9, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'] },
+    { id: 10, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
+    { id: 11, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'] },
+    { id: 12, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'] },
+    { id: 13, name: 'IGMP ATTENTION', keywords: ['IGMP', 'multicast'] },
+    { id: 14, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
+    { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'] },
+    { id: 16, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
+    { id: 17, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3', 'IGMP v1/v2/v3'] },
+    { id: 18, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'] },
+    { id: 19, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'] },
+    { id: 20, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'] },
+    { id: 21, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'] },
+    { id: 22, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', 'fiber'] },
+    { id: 23, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
+    { id: 24, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS', 'WEB', 'ВЕБ', 'ВЭБ'] },
+    { id: 25, name: 'WEB', keywords: ['HTTP','HTTPS','WEB'] }
+];
     }
     updateStats();
     renderProtocolsGrid();
