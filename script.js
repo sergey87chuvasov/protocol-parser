@@ -69,7 +69,7 @@ function loadProtocols() {
     { id: 12, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'] },
     { id: 13, name: 'IGMP ATTENTION', keywords: ['IGMP', 'multicast'] },
     { id: 14, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
-    { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'] },
+    { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'Fast Leave'] },
     { id: 16, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
     { id: 17, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3', 'IGMP v1/v2/v3'] },
     { id: 18, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'] },
