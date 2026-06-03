@@ -72,24 +72,14 @@ function loadProtocols() {
     { id: 15, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave', 'Fast Leave'] },
     { id: 16, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
     { id: 17, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3', 'IGMP v1/v2/v3', 'IGMP v1/v2/v3 Snooping', 'IGMP-SNOOPING',
-    'IGMP snooping',
-    'IGMP v1/v2/v3 Snooping',
     'IGMPv1/v2/v3 Snooping',
-    'IGMP v1/v2/v3 snooping',
     'IGMP Snooping v1/v2/v3',
-    'IGMP snooping v1/v2/v3',
-    'IGMP V1/V2/V3 Snooping',
     'snooping'] },
     { id: 18, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'] },
     { id: 19, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'] },
     { id: 20, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert',  'traceroute',
     'trace route', 'ttl',
     'time to live',
-    'ttl expired',
-    'ttl exceeded',
-    'port unreachable',
-    'icmp time exceeded',
-    'path discovery',
     'hop',
     'route tracing'] },
     { id: 21, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'] },
@@ -168,23 +158,70 @@ function resetResults(keepText = false) {
 function fullReset() { resetResults(false); }
 
 function analyzeText(text) {
-    if (!text || !text.trim()) { showNotification('Нет текста для анализа'); return; }
-    const clean = cleanText(text).toLowerCase();
+    if (!text || !text.trim()) { 
+        showNotification('Нет текста для анализа'); 
+        return; 
+    }
+    
+    // 1. Сначала ПОЛНОСТЬЮ удаляем все ссылки и URL
+    let clean = text;
+    clean = clean.replace(/https?:\/\/[^\s<>"'\]]+/gi, '');
+    clean = clean.replace(/www\.[^\s<>"'\]]+/gi, '');
+    clean = clean.replace(/\[([^\]]+)\]\([^\)]+\)/gi, '$1');
+    clean = clean.replace(/<a\s+[^>]*>([^<]*)<\/a>/gi, '$1');
+    clean = clean.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b/gi, '');
+    clean = clean.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '');
+    clean = clean.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '');
+    
+    // 2. Очищаем от лишних символов
+    clean = clean.replace(/[^\w\s\u0400-\u04FF\-\.]/g, ' ');
+    clean = clean.replace(/\s+/g, ' ');
+    
+    const lowerText = clean.toLowerCase();
+    
+    // 3. Разбиваем на отдельные слова (только целые слова)
+    const words = lowerText.split(/\s+/).filter(w => w.length > 0);
     
     protocols.forEach(p => {
         p.found = false;
         p.foundKeywords = [];
+        
         for (const kw of p.keywords) {
-            if (clean.includes(kw.toLowerCase())) {
-                p.found = true;
-                if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
+            const lowerKw = kw.toLowerCase();
+            
+            // Пропускаем ключевые слова, похожие на URL
+            if (lowerKw.includes('http') || lowerKw.includes('www')) {
+                continue;
+            }
+            
+            // Для коротких ключевых слов (3-4 символа) — ищем ТОЧНОЕ совпадение со словом
+            if (lowerKw.length <= 4) {
+                // Проверяем, есть ли в массиве слов ТОЧНО такое же слово
+                if (words.some(word => word === lowerKw)) {
+                    p.found = true;
+                    if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
+                }
+            }
+            // Для длинных ключевых слов — ищем вхождение с границами слова
+            else {
+                const regex = new RegExp(`\\b${escapeRegExp(lowerKw)}\\b`, 'i');
+                if (regex.test(clean)) {
+                    p.found = true;
+                    if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
+                }
             }
         }
     });
+    
     renderProtocolsGrid();
     updateStats();
     const foundCount = protocols.filter(p => p.found).length;
     showNotification(`Анализ завершен! Найдено ${foundCount} из ${protocols.length}`);
+}
+
+// Добавь эту вспомогательную функцию
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function renderProtocolsGrid() {
