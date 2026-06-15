@@ -25,7 +25,7 @@
         <div class="upload-section">
             <div class="upload-area" id="dropArea">
                 <i class="fas fa-file-pdf fa-3x"></i>
-                <h3>Перетащите PDF файл сюда</h3>
+               <h3>Переместите PDF файл в указанную область<i class="fas fa-info-circle" style="font-size: 0.7em; opacity: 0.6;" title="Можно перетащить мышью или выбрать через кнопку"></i></h3>
                 <p>или нажмите для выбора файла</p>
                 <input type="file" id="fileInput" accept=".pdf,.txt" hidden>
                 <button class="btn" id="selectFileBtn">Выбрать файл</button>
@@ -44,7 +44,7 @@
         </div>
 
         <div class="results-section">
-            <h2><i class="fas fa-list-check"></i> Найденные протоколы</h2>
+            <h2><i class="fas fa-list-check"></i> Найденные параметры</h2>
             
             <div class="stats">
                 <div class="stat-card">
@@ -62,11 +62,11 @@
             </div>
             
             <div class="filter-buttons">
-                <button class="filter-btn active" data-filter="all">Все протоколы</button>
+                <button class="filter-btn active" data-filter="all">Все параметры</button>
                 <button class="filter-btn" data-filter="found">Найденные</button>
                 <button class="filter-btn" data-filter="notFound">Не найденные</button>
                 <button class="filter-btn" id="addProtocolBtn" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;">
-                    <i class="fas fa-plus"></i> Добавить протокол
+                    <i class="fas fa-plus"></i> Добавить параметр
                 </button>
             </div>
             
@@ -80,7 +80,7 @@
                     <i class="fas fa-redo"></i> Сбросить результаты
                 </button>
                 <button class="btn" id="forceDeleteAllBtn" style="background: #e53e3e;">
-                    <i class="fas fa-trash-alt"></i> Удалить все добавленные протоколы
+                    <i class="fas fa-trash-alt"></i> Удалить все добавленные параметры
                 </button>
             </div>
         </div>
@@ -88,7 +88,7 @@
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h4><i class="fas fa-toolbox"></i> ProtoScan</h4>
+                    <h4><i class="fas fa-toolbox"></i> Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования</h4>
                     <p>Инструмент для анализа даташитов оборудования</p>
                     <p>Версия 2.2.0</p>
                 </div>
@@ -104,7 +104,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 ProtoScan | ЦПЛ МЦК. Все права защищены.</p>
+                <p>&copy; 2026 Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования | ЦПЛ МЦК. Все права защищены.</p>
             </div>
         </footer>
     </div>
