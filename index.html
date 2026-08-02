@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>ProtoScan | ЦПЛ МЦК</title>
+    <title>Программа анализа ТТХ телекоммуникационного оборудования</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -13,6 +13,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
+    <!-- КНОПКА ПЕРЕКЛЮЧЕНИЯ ТЕМЫ -->
+    <button id="themeToggle" class="theme-btn" title="Переключить тему">🌙</button>
+
     <div class="container">
         <header>
             <h1>
@@ -25,7 +28,7 @@
         <div class="upload-section">
             <div class="upload-area" id="dropArea">
                 <i class="fas fa-file-pdf fa-3x"></i>
-               <h3>Переместите PDF файл в указанную область<i class="fas fa-info-circle" style="font-size: 0.7em; opacity: 0.6;" title="Можно перетащить мышью или выбрать через кнопку"></i></h3>
+                <h3>Переместите PDF файл в указанную область<i class="fas fa-info-circle" style="font-size: 0.7em; opacity: 0.6;" title="Можно перетащить мышью или выбрать через кнопку"></i></h3>
                 <p>или нажмите для выбора файла</p>
                 <input type="file" id="fileInput" accept=".pdf,.txt" hidden>
                 <button class="btn" id="selectFileBtn">Выбрать файл</button>
@@ -71,6 +74,13 @@
             </div>
             
             <div class="protocols-grid" id="protocolsGrid"></div>
+
+            <!-- СЕКЦИЯ С ПОДСВЕЧЕННЫМ ТЕКСТОМ -->
+            <div class="highlight-section hidden" id="highlightSection">
+                <h3><i class="fas fa-highlighter"></i> Текст с подсветкой найденных параметров</h3>
+                <div id="highlightedText" class="highlighted-text"></div>
+                <button class="btn secondary-btn" id="closeHighlightBtn" style="margin-top: 10px;">Скрыть текст</button>
+            </div>
             
             <div class="export-section">
                 <button class="btn export-btn" id="exportDocxBtn">
@@ -82,13 +92,17 @@
                 <button class="btn" id="forceDeleteAllBtn" style="background: #e53e3e;">
                     <i class="fas fa-trash-alt"></i> Удалить все добавленные параметры
                 </button>
+                <button class="btn" id="showHighlightBtn" style="background: #f59e0b;">
+                    <i class="fas fa-highlighter"></i> Показать подсветку
+                </button>
             </div>
         </div>
 
         <footer class="footer">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h4><i class="fas fa-toolbox"></i> Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования</h4>
+                    <h4><i class="fas fa-toolbox"></i> Анализатор ТТХ оборудования связи</h4>
+                    <p>Версия 2.3.0</p>
                 </div>
                 <div class="footer-section">
                     <h4><i class="fas fa-code"></i> Технологии</h4>
@@ -102,12 +116,12 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования | ЦПЛ МЦК. Все права защищены.</p>
+                <p>&copy; 2026 Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования | ЦПЛ МЦК</p>
             </div>
         </footer>
     </div>
 
-    <!-- Модальное окно для добавления протокола -->
+    <!-- Модальное окно для добавления параметра -->
     <div class="modal hidden" id="addProtocolModal">
         <div class="modal-content" style="max-width: 450px;">
             <h3>➕ Добавить параметр</h3>

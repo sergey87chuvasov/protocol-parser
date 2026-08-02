@@ -4,7 +4,6 @@
  * ТЕХНИЧЕСКИХ ХАРАКТЕРИСТИК ТЕЛЕКОММУНИКАЦИОННОГО ОБОРУДОВАНИЯ
  * 
  * Версия: 2.3.0
- * Дата: 2025
  * 
  * Описание: Локальное веб-приложение для анализа даташитов.
  * Работает из папки (3 файла: index.html, style.css, script.js),
@@ -14,8 +13,10 @@
  * - Загрузка PDF/TXT или вставка текста вручную
  * - Автоматическое извлечение ключевых слов (протоколов/параметров)
  * - Цветовая индикация результатов (найдено/не найдено)
+ * - Подсветка найденных слов в тексте
  * - Добавление/удаление пользовательских параметров
  * - Экспорт отчёта в DOCX
+ * - Тёмная тема
  * =====================================================
  */
 
@@ -31,6 +32,7 @@ let protocols = [];                // Массив всех протоколов
 let pdfText = '';                  // Текст загруженного даташита
 let currentFilter = 'all';         // Текущий фильтр (all, found, notFound)
 let lastLoadedFile = null;         // Последний загруженный файл
+let originalText = '';             // Исходный текст даташита для подсветки
 
 // =====================================================
 // 3. СЛОВАРЬ ПОДСКАЗОК (описание каждого параметра)
@@ -41,9 +43,9 @@ const protocolHints = {
     'IPv6': 'Оборудование должно уметь работать с IP-адресами нового поколения. Расширяет адресное пространство.',
     'ARP': 'Оборудование должно уметь преобразовывать IP в MAC-адреса.',
     'VLAN': 'Оборудование должно уметь разделять сеть на изолированные сегменты.',
-    'QinQ': 'Оборудование должно уметь делать двойное VLAN-тегирование. Технология провайдеров.',
+    'QinQ': 'Оборудование должно уметь делать двойное VLAN-тегирование.',
     'ICMP-PING': 'Оборудование должно уметь отвечать на ICMP-запросы. Команда ping — первое что делает инженер.',
-    'ICMPv6': 'Оборудование должно уметь работать с ICMP для IPv6. Включает Neighbor Discovery и MLD.',
+    'ICMPv6': 'Оборудование должно уметь работать с ICMP для IPv6.',
     
     // ----- DHCP и его подпротоколы -----
     'DHCP': 'Оборудование должно уметь автоматически получать IP от сервера.',
@@ -91,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadProtocols();               // Загружаем словарь (из localStorage или базовый)
     initEventListeners();          // Навешиваем обработчики событий
     updateStats();                 // Обновляем статистику (0/0/0%)
+    initTheme();                   // Инициализируем тему
     
     // Устанавливаем сегодняшнюю дату в поле "Дата тестирования"
     const testDateInput = document.getElementById('testDate');
@@ -98,20 +101,34 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =====================================================
-// 5. ЗАГРУЗКА СЛОВАРЯ ПРОТОКОЛОВ
+// 5. ТЁМНАЯ ТЕМА
+// =====================================================
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+        document.getElementById('themeToggle').textContent = '☀️';
+    }
+}
+
+function toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    document.getElementById('themeToggle').textContent = isDark ? '☀️' : '🌙';
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+// =====================================================
+// 6. ЗАГРУЗКА СЛОВАРЯ ПРОТОКОЛОВ
 // =====================================================
 function loadProtocols() {
-    // Проверяем, есть ли сохранённые данные в браузере
     const saved = localStorage.getItem('protocolsDictionary');
     if (saved) {
-        // Если есть — загружаем их
         const savedData = JSON.parse(saved);
         protocols = savedData.map(p => ({
             id: p.id, name: p.name, keywords: p.keywords, description: p.description || '',
             found: false, foundKeywords: []
         }));
     } else {
-        // Если нет — используем базовый словарь (28 протоколов)
         protocols = [
             // ----- Базовые протоколы -----
             { id: 1, name: 'IP', keywords: ['IPV4','IP','Internet Protocol'] },
@@ -171,7 +188,7 @@ function saveProtocols() {
 }
 
 // =====================================================
-// 6. ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЬСКОГО ПРОТОКОЛА
+// 7. ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЬСКОГО ПРОТОКОЛА
 // =====================================================
 function openAddModal() {
     document.getElementById('addProtocolModal').classList.remove('hidden');
@@ -216,10 +233,10 @@ function addProtocol() {
 }
 
 // =====================================================
-// 7. УДАЛЕНИЕ ВСЕХ ПОЛЬЗОВАТЕЛЬСКИХ ПРОТОКОЛОВ
+// 8. УДАЛЕНИЕ ВСЕХ ПОЛЬЗОВАТЕЛЬСКИХ ПРОТОКОЛОВ
 // =====================================================
 function deleteAllUserProtocols() {
-    const userProtocols = protocols.filter(p => p.id > 28); // 28 — базовых протоколов
+    const userProtocols = protocols.filter(p => p.id > 28);
     const count = userProtocols.length;
     if (count === 0) {
         alert('❌ Нет добавленных параметров для удаления');
@@ -235,24 +252,83 @@ function deleteAllUserProtocols() {
 }
 
 // =====================================================
-// 8. ОЧИСТКА ТЕКСТА ОТ "МУСОРА" (ССЫЛКИ, IP, HTML-ТЕГИ)
+// 9. ОЧИСТКА ТЕКСТА ОТ "МУСОРА" (ССЫЛКИ, IP, HTML-ТЕГИ)
 // =====================================================
 function cleanText(text) {
     if (!text) return '';
     let cleaned = text;
-    cleaned = cleaned.replace(/https?:\/\/[^\s<>"'\]]+/gi, '');   // Удаляем http://, https://
-    cleaned = cleaned.replace(/www\.[^\s<>"'\]]+/gi, '');         // Удаляем www.
-    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/gi, '$1');  // Удаляем markdown-ссылки
-    cleaned = cleaned.replace(/<a\s+[^>]*>([^<]*)<\/a>/gi, '$1'); // Удаляем HTML-ссылки
-    cleaned = cleaned.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b/gi, ''); // Удаляем домены
-    cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, ''); // Удаляем IP-адреса
-    cleaned = cleaned.replace(/[^\w\s\u0400-\u04FF\-\.]/g, ' ');   // Оставляем только буквы, цифры, пробелы, дефисы, точки
-    cleaned = cleaned.replace(/\s+/g, ' ');                         // Сжимаем множественные пробелы
+    
+    // Полностью удаляем все ссылки
+    cleaned = cleaned.replace(/https?:\/\/[^\s<>"'\]]+/gi, '');
+    cleaned = cleaned.replace(/www\.[^\s<>"'\]]+/gi, '');
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/gi, '$1');
+    cleaned = cleaned.replace(/<a\s+[^>]*>([^<]*)<\/a>/gi, '$1');
+    cleaned = cleaned.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b/gi, '');
+    cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '');
+    cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '');
+    
+    // Убираем http/https как отдельные слова
+    cleaned = cleaned.replace(/\bhttps?\b/gi, '');
+    
+    // Оставляем только буквы, цифры, пробелы, дефисы, точки
+    cleaned = cleaned.replace(/[^\w\s\u0400-\u04FF\-\.]/g, ' ');
+    cleaned = cleaned.replace(/\s+/g, ' ');
+    
     return cleaned.trim();
 }
 
 // =====================================================
-// 9. АНАЛИЗ ТЕКСТА (ПОИСК ПРОТОКОЛОВ)
+// 10. ЭКРАНИРОВАНИЕ ДЛЯ REGEXP
+// =====================================================
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// =====================================================
+// 11. ПОДСВЕТКА НАЙДЕННЫХ СЛОВ В ТЕКСТЕ
+// =====================================================
+function showHighlightedText() {
+    if (!originalText || originalText.trim() === '') {
+        showNotification('Нет текста для подсветки');
+        return;
+    }
+    
+    const highlightSection = document.getElementById('highlightSection');
+    const container = document.getElementById('highlightedText');
+    
+    if (!highlightSection || !container) return;
+    
+    // Собираем все найденные ключевые слова
+    const foundKeywords = [];
+    protocols.forEach(p => {
+        if (p.found && p.foundKeywords) {
+            p.foundKeywords.forEach(kw => {
+                foundKeywords.push(kw.toLowerCase());
+            });
+        }
+    });
+    
+    const uniqueKeywords = [...new Set(foundKeywords)];
+    uniqueKeywords.sort((a, b) => b.length - a.length);
+    
+    let highlighted = escapeHtml(originalText);
+    
+    // Подсвечиваем каждое найденное слово
+    uniqueKeywords.forEach(kw => {
+        const regex = new RegExp(`(${escapeRegExp(kw)})`, 'gi');
+        highlighted = highlighted.replace(regex, `<span class="highlight">$1</span>`);
+    });
+    
+    container.innerHTML = highlighted;
+    highlightSection.classList.remove('hidden');
+}
+
+function hideHighlightedText() {
+    document.getElementById('highlightSection').classList.add('hidden');
+}
+
+// =====================================================
+// 12. АНАЛИЗ ТЕКСТА (ПОИСК ПРОТОКОЛОВ)
 // =====================================================
 function analyzeText(text) {
     if (!text || !text.trim()) { 
@@ -260,9 +336,14 @@ function analyzeText(text) {
         return; 
     }
     
+    // Сохраняем исходный текст для подсветки
+    originalText = text;
+    
     // Очищаем текст от мусора
     let clean = cleanText(text);
     const lowerText = clean.toLowerCase();
+    
+    // Разбиваем на слова для точного поиска
     const words = lowerText.split(/\s+/).filter(w => w.length > 0);
     
     // Проверяем каждый протокол из словаря
@@ -273,6 +354,11 @@ function analyzeText(text) {
         for (const kw of p.keywords) {
             const lowerKw = kw.toLowerCase();
             
+            // Пропускаем явные ссылки
+            if (lowerKw.includes('http') || lowerKw.includes('www')) {
+                continue;
+            }
+            
             // Короткие слова (до 5 символов) — ищем точное совпадение
             if (lowerKw.length <= 5) {
                 if (words.some(word => word === lowerKw)) {
@@ -280,9 +366,10 @@ function analyzeText(text) {
                     if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
                 }
             } 
-            // Длинные слова — ищем вхождение с учётом границ
+            // Длинные слова — ищем вхождение с границами
             else {
-                if (lowerText.includes(lowerKw)) {
+                const regex = new RegExp(`\\b${escapeRegExp(lowerKw)}\\b`, 'i');
+                if (regex.test(clean)) {
                     p.found = true;
                     if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
                 }
@@ -293,6 +380,11 @@ function analyzeText(text) {
     // Пытаемся извлечь информацию об оборудовании
     extractDeviceInfo(clean);
     
+    // Автоматически переключаемся на "Найденные"
+    currentFilter = 'found';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.filter-btn[data-filter="found"]')?.classList.add('active');
+    
     renderProtocolsGrid();
     updateStats();
     const foundCount = protocols.filter(p => p.found).length;
@@ -300,8 +392,7 @@ function analyzeText(text) {
 }
 
 // =====================================================
-// 10. ИЗВЛЕЧЕНИЕ ДАННЫХ ОБ ОБОРУДОВАНИИ ИЗ ТЕКСТА
-//     (Автозаполнение полей: название, модель, производитель)
+// 13. ИЗВЛЕЧЕНИЕ ДАННЫХ ОБ ОБОРУДОВАНИИ ИЗ ТЕКСТА
 // =====================================================
 function extractDeviceInfo(text) {
     if (!text || text.trim() === '') return;
@@ -310,7 +401,6 @@ function extractDeviceInfo(text) {
     let model = '';
     let vendor = '';
     
-    // Шаблоны для поиска
     const nameMatch = text.match(/Device\s*[:;]\s*([^\n\r,]+)/i) || 
                       text.match(/Оборудование\s*[:;]\s*([^\n\r,]+)/i) ||
                       text.match(/Equipment\s*[:;]\s*([^\n\r,]+)/i);
@@ -318,18 +408,14 @@ function extractDeviceInfo(text) {
     
     const modelMatch = text.match(/Model\s*[:;]\s*([^\n\r,]+)/i) || 
                        text.match(/Модель\s*[:;]\s*([^\n\r,]+)/i) ||
-                       text.match(/Part\s*No\s*[:;]\s*([^\n\r,]+)/i) ||
-                       text.match(/P\/N\s*[:;]\s*([^\n\r,]+)/i) ||
-                       text.match(/([A-Z]{2,5}-\d{4,5}[-A-Z\d]*)/i);  // Паттерн для Cisco/Juniper
+                       text.match(/Part\s*No\s*[:;]\s*([^\n\r,]+)/i);
     if (modelMatch) model = modelMatch[1].trim();
     
     const vendorMatch = text.match(/Vendor\s*[:;]\s*([^\n\r,]+)/i) || 
                         text.match(/Производитель\s*[:;]\s*([^\n\r,]+)/i) ||
-                        text.match(/Manufacturer\s*[:;]\s*([^\n\r,]+)/i) ||
-                        text.match(/Brand\s*[:;]\s*([^\n\r,]+)/i);
+                        text.match(/Manufacturer\s*[:;]\s*([^\n\r,]+)/i);
     if (vendorMatch) vendor = vendorMatch[1].trim();
     
-    // Заполняем поля в модальном окне
     const nameInput = document.getElementById('deviceName');
     const modelInput = document.getElementById('deviceModel');
     const vendorInput = document.getElementById('deviceVendor');
@@ -339,7 +425,6 @@ function extractDeviceInfo(text) {
     if (modelInput && model) modelInput.value = model;
     if (vendorInput && vendor) vendorInput.value = vendor;
     
-    // Дата — всегда сегодняшняя
     if (dateInput && !dateInput.value) {
         const today = new Date();
         dateInput.value = today.toISOString().slice(0, 10);
@@ -347,14 +432,16 @@ function extractDeviceInfo(text) {
 }
 
 // =====================================================
-// 11. СБРОС РЕЗУЛЬТАТОВ АНАЛИЗА
+// 14. СБРОС РЕЗУЛЬТАТОВ АНАЛИЗА
 // =====================================================
 function resetResults(keepText = false) {
     protocols.forEach(p => { p.found = false; p.foundKeywords = []; });
     if (!keepText) {
         pdfText = '';
+        originalText = '';
         document.getElementById('manualText').value = '';
         lastLoadedFile = null;
+        hideHighlightedText();
     }
     renderProtocolsGrid();
     updateStats();
@@ -364,14 +451,13 @@ function resetResults(keepText = false) {
 function fullReset() { resetResults(false); }
 
 // =====================================================
-// 12. ОТОБРАЖЕНИЕ ПРОТОКОЛОВ В ВИДЕ КАРТОЧЕК
+// 15. ОТОБРАЖЕНИЕ ПРОТОКОЛОВ В ВИДЕ КАРТОЧЕК
 // =====================================================
 function renderProtocolsGrid() {
     const grid = document.getElementById('protocolsGrid');
     if (!grid) return;
     grid.innerHTML = '';
     
-    // Фильтрация по статусу
     let filtered = protocols;
     if (currentFilter === 'found') filtered = protocols.filter(p => p.found);
     if (currentFilter === 'notFound') filtered = protocols.filter(p => !p.found);
@@ -381,7 +467,6 @@ function renderProtocolsGrid() {
         return;
     }
     
-    // Создаём карточку для каждого протокола
     filtered.forEach(p => {
         const card = document.createElement('div');
         card.className = `protocol-card ${p.found ? 'found' : ''}`;
@@ -403,7 +488,6 @@ function renderProtocolsGrid() {
         grid.appendChild(card);
     });
     
-    // Подсказки по клику на карточку
     document.querySelectorAll('.protocol-card').forEach(card => {
         const id = card.getAttribute('data-id');
         const hintDiv = document.getElementById(`hint-${id}`);
@@ -437,7 +521,7 @@ function updateStats() {
 }
 
 // =====================================================
-// 13. ЗАГРУЗКА ФАЙЛОВ (PDF / TXT)
+// 16. ЗАГРУЗКА ФАЙЛОВ (PDF / TXT)
 // =====================================================
 async function handleFileUpload(event) {
     const file = event.target.files[0];
@@ -464,7 +548,14 @@ async function parsePDF(file) {
         showLoading(false);
         analyzeText(pdfText);
         showNotification(`PDF загружен! ${pdf.numPages} страниц.`);
-    } catch(e) { showLoading(false); alert('Ошибка PDF'); }
+    } catch(e) { 
+        showLoading(false); 
+        if (e.message && e.message.includes('password')) {
+            alert('Файл защищён паролем. Пожалуйста, снимите защиту.');
+        } else {
+            alert('Не удалось прочитать PDF. Проверьте, что файл не повреждён.');
+        }
+    }
 }
 
 function parseText(file) {
@@ -486,7 +577,7 @@ function parseManual() {
 }
 
 // =====================================================
-// 14. UI ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (уведомления, загрузка)
+// 17. UI ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (уведомления, загрузка)
 // =====================================================
 function showLoading(show) {
     const el = document.getElementById('pdfLoading');
@@ -506,7 +597,7 @@ function showNotification(msg) {
 }
 
 // =====================================================
-// 15. ОТКРЫТИЕ/ЗАКРЫТИЕ МОДАЛЬНОГО ОКНА НАСТРОЙКИ ОТЧЁТА
+// 18. ОТКРЫТИЕ/ЗАКРЫТИЕ МОДАЛЬНОГО ОКНА НАСТРОЙКИ ОТЧЁТА
 // =====================================================
 function openTemplateModal() { 
     document.getElementById('templateModal').classList.remove('hidden'); 
@@ -517,27 +608,23 @@ function closeTemplateModal() {
 }
 
 // =====================================================
-// 16. ГЕНЕРАЦИЯ DOCX-ОТЧЁТА
+// 19. ГЕНЕРАЦИЯ DOCX-ОТЧЁТА
 // =====================================================
 function generateDocx() {
     try {
-        // Считываем данные из формы
         const name = document.getElementById('deviceName')?.value || 'Не указано';
         const model = document.getElementById('deviceModel')?.value || 'Не указано';
         const vendor = document.getElementById('deviceVendor')?.value || 'Не указано';
         const date = document.getElementById('testDate')?.value || new Date().toISOString().slice(0,10);
         
         const found = protocols.filter(p => p.found);
-        const notFound = protocols.filter(p => !p.found);
         const percent = Math.round(found.length / protocols.length * 100);
         
-        // Создаём ZIP-архив для DOCX
         const zip = new JSZip();
         zip.file("[Content_Types].xml", `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
         zip.file("_rels/.rels", `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
         zip.file("word/_rels/document.xml.rels", `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
         
-        // Строим таблицу найденных протоколов
         let foundRows = '';
         found.forEach((p, i) => {
             const hint = getHint(p.name, p.description);
@@ -556,7 +643,6 @@ function generateDocx() {
         <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="28"/><w:color w:val="8B5CF6"/></w:rPr><w:t>Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования</w:t></w:r></w:p>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
         
-        <!-- Таблица с информацией об оборудовании -->
         <w:tbl>
             <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
                 <w:tblBorders>
@@ -580,7 +666,6 @@ function generateDocx() {
         </w:tbl>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
         
-        <!-- Таблица со статистикой -->
         <w:tbl>
             <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
                 <w:tblBorders>
@@ -602,7 +687,6 @@ function generateDocx() {
         </w:tbl>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
         
-        <!-- Таблица подтверждённых параметров (только если есть) -->
         ${found.length ? `<w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>✅ ПОДТВЕРЖДЕННЫЕ ПАРАМЕТРЫ</w:t></w:r></w:p><w:tbl>
             <w:tblPr><w:tblW w:w="9000"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="86EFAC"/><w:left w:val="single" w:sz="4" w:color="86EFAC"/><w:bottom w:val="single" w:sz="4" w:color="86EFAC"/><w:right w:val="single" w:sz="4" w:color="86EFAC"/><w:insideH w:val="single" w:sz="4" w:color="DCFCE7"/><w:insideV w:val="single" w:sz="4" w:color="DCFCE7"/></w:tblBorders></w:tblPr>
             <w:tr><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>№</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Описание</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Найдено по</w:t></w:r></w:p></w:tc></w:tr>
@@ -620,18 +704,18 @@ function generateDocx() {
     } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
-/**
- * Экранирование XML-символов для DOCX
- */
 function escapeXml(s) { 
     if (!s) return ''; 
     return s.toString().replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); 
 }
 
 // =====================================================
-// 17. НАСТРОЙКА ОБРАБОТЧИКОВ СОБЫТИЙ
+// 20. НАСТРОЙКА ОБРАБОТЧИКОВ СОБЫТИЙ
 // =====================================================
 function initEventListeners() {
+    // --- Тема ---
+    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+    
     // --- Загрузка файлов ---
     document.getElementById('selectFileBtn')?.addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('fileInput')?.addEventListener('change', handleFileUpload);
@@ -647,12 +731,16 @@ function initEventListeners() {
     // --- Сброс ---
     document.getElementById('resetAnalysisBtn')?.addEventListener('click', fullReset);
     
-    // --- Добавление протокола ---
+    // --- Подсветка ---
+    document.getElementById('showHighlightBtn')?.addEventListener('click', showHighlightedText);
+    document.getElementById('closeHighlightBtn')?.addEventListener('click', hideHighlightedText);
+    
+    // --- Добавление ---
     document.getElementById('addProtocolBtn')?.addEventListener('click', openAddModal);
     document.getElementById('closeAddModalBtn')?.addEventListener('click', closeAddModal);
     document.getElementById('confirmAddProtocolBtn')?.addEventListener('click', addProtocol);
     
-    // --- Удаление всех добавленных протоколов ---
+    // --- Удаление ---
     document.getElementById('forceDeleteAllBtn')?.addEventListener('click', deleteAllUserProtocols);
     
     // --- Фильтры ---
@@ -686,27 +774,19 @@ function initEventListeners() {
 }
 
 // =====================================================
-// 18. ДИНАМИЧЕСКИЕ СТИЛИ (добавляются один раз)
+// 21. ДИНАМИЧЕСКИЕ СТИЛИ
 // =====================================================
 if (!document.querySelector('#dynamic-styles')) {
     const s = document.createElement('style');
     s.id = 'dynamic-styles';
     s.textContent = `
-        .protocol-hint {
-            margin-top:12px;
-            padding:12px;
-            background:linear-gradient(135deg,#f3e8ff,#faf7ff);
-            border-radius:12px;
-            font-size:0.9em;
-            color:#5a2d8c;
-            border-left:3px solid #8b5cf6
-        }
-        .protocol-hint.hidden{display:none}
-        .notification-toast{position:fixed;bottom:20px;right:20px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;padding:14px 28px;border-radius:50px;z-index:1000;animation:slideInRight 0.4s}
-        .empty-state{text-align:center;padding:60px 20px;background:linear-gradient(135deg,#faf7ff,#f3eaff);border-radius:20px;color:#9b6ddf;grid-column:1/-1}
-        @keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-        @keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
-        .badge-white{font-size:0.6em;background:linear-gradient(135deg,#8b5cf6,#7c3aed);padding:4px 12px;border-radius:50px;color:#fff;margin-left:8px}
+        .protocol-hint { margin-top:12px; padding:12px; background:var(--bg-upload); border-radius:12px; font-size:0.9em; color:var(--text-secondary); border-left:3px solid #8b5cf6; }
+        .protocol-hint.hidden { display:none; }
+        .notification-toast { position:fixed; bottom:20px; right:20px; background:linear-gradient(135deg,#8b5cf6,#7c3aed); color:#fff; padding:14px 28px; border-radius:50px; z-index:1000; animation:slideInRight 0.4s; font-size:14px; font-weight:500; }
+        .empty-state { text-align:center; padding:60px 20px; background:var(--bg-upload); border-radius:20px; color:var(--text-secondary); grid-column:1/-1; border:2px dashed var(--border-color); }
+        @keyframes slideInRight { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+        @keyframes slideOut { from { transform:translateX(0); opacity:1; } to { transform:translateX(100%); opacity:0; } }
+        .badge-white { font-size:0.6em; background:linear-gradient(135deg,#8b5cf6,#7c3aed); padding:4px 12px; border-radius:50px; display:inline-block; color:#fff; font-weight:600; margin-left:8px; box-shadow:0 2px 8px rgba(139,92,246,0.3); }
     `;
     document.head.appendChild(s);
 }
