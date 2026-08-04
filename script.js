@@ -3,106 +3,72 @@
  * ПРОГРАММА АВТОМАТИЧЕСКОГО АНАЛИЗА И ВЕРИФИКАЦИИ
  * ТЕХНИЧЕСКИХ ХАРАКТЕРИСТИК ТЕЛЕКОММУНИКАЦИОННОГО ОБОРУДОВАНИЯ
  * 
- * Версия: 2.3.0
- * 
- * Описание: Локальное веб-приложение для анализа даташитов.
- * Работает из папки (3 файла: index.html, style.css, script.js),
- * не требует сервера и интернета после первого запуска.
- * 
- * Основные функции:
- * - Загрузка PDF/TXT или вставка текста вручную
- * - Автоматическое извлечение ключевых слов (протоколов/параметров)
- * - Цветовая индикация результатов (найдено/не найдено)
- * - Подсветка найденных слов в тексте
- * - Добавление/удаление пользовательских параметров
- * - Экспорт отчёта в DOCX
- * - Тёмная тема
+ * Версия: 2.8.0
  * =====================================================
  */
 
-// =====================================================
-// 1. НАСТРОЙКА PDF.JS (извлечение текста из PDF)
-// =====================================================
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // =====================================================
-// 2. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 // =====================================================
-let protocols = [];                // Массив всех протоколов/параметров
-let pdfText = '';                  // Текст загруженного даташита
-let currentFilter = 'all';         // Текущий фильтр (all, found, notFound)
-let lastLoadedFile = null;         // Последний загруженный файл
-let originalText = '';             // Исходный текст даташита для подсветки
+let protocols = [];
+let pdfText = '';
+let currentFilter = 'all';
+let lastLoadedFile = null;
+let originalText = '';
 
 // =====================================================
-// 3. СЛОВАРЬ ПОДСКАЗОК (описание каждого параметра)
+// ПРАКТИЧЕСКИЕ ПОДСКАЗКИ (что проверять)
 // =====================================================
 const protocolHints = {
-    // ----- Базовые протоколы -----
-    'IP': 'Оборудование должно уметь работать с IP-адресами. Основа всей IP-сети.',
-    'IPv6': 'Оборудование должно уметь работать с IP-адресами нового поколения. Расширяет адресное пространство.',
-    'ARP': 'Оборудование должно уметь преобразовывать IP в MAC-адреса.',
-    'VLAN': 'Оборудование должно уметь разделять сеть на изолированные сегменты.',
-    'QinQ': 'Оборудование должно уметь делать двойное VLAN-тегирование.',
-    'ICMP-PING': 'Оборудование должно уметь отвечать на ICMP-запросы. Команда ping — первое что делает инженер.',
-    'ICMPv6': 'Оборудование должно уметь работать с ICMP для IPv6.',
-    
-    // ----- DHCP и его подпротоколы -----
-    'DHCP': 'Оборудование должно уметь автоматически получать IP от сервера.',
-    'DHCP-SERVER': 'Оборудование должно уметь само раздавать IP-адреса.',
-    'DHCP-Client': 'Оборудование должно уметь автоматически получать IP-адрес.',
-    'DHCPv6': 'Оборудование должно уметь получать IPv6-адреса через DHCPv6.',
-    'DHCP-RELAY': 'Оборудование должно уметь перенаправлять DHCP-запросы в другие подсети.',
-    'DHCP-Snooping': 'Оборудование должно уметь фильтровать недоверенные DHCP-ответы.',
-    'DHCP IP Anti-Spoofing': 'Оборудование должно уметь проверять соответствие IP и MAC.',
-    
-    // ----- RIP и IGMP -----
-    'RIP': 'Оборудование должно уметь обмениваться маршрутами. Протокол для небольших сетей.',
-    'IGMP ATTENTION': 'Оборудование должно уметь управлять групповыми рассылками.',
-    'IGMP-SNOOPING': 'Оборудование должно уметь анализировать IGMP-запросы.',
-    'IGMP FAST Leave': 'Оборудование должно уметь мгновенно обрабатывать выход из мультикаст-группы.',
-    'IGMP-PROXY': 'Оборудование должно уметь объединять мультикаст-запросы.',
-    'IGMP V3': 'Оборудование должно уметь фильтровать мультикаст по источникам.',
-    
-    // ----- Транспортные протоколы -----
-    'UDP': 'Оборудование должно уметь обрабатывать быстрые разрозненные пакеты.',
-    'TCP': 'Оборудование должно уметь устанавливать надежные соединения.',
-    
-    // ----- Диагностика и оборудование -----
-    'TRACE-ROUTE': 'Оборудование должно уметь показывать маршрут прохождения пакетов.',
-    'RJ45': 'Оборудование должно уметь подключаться по медным портам.',
-    'SFP': 'Оборудование должно уметь подключаться по оптическим трансиверам.',
-    'SNMP': 'Оборудование должно уметь отдавать статистику через SNMP.',
-    'HTTP-HTTPS': 'Оборудование должно уметь открывать защищенный веб-интерфейс.',
-    'WEB': 'Оборудование должно уметь управляться через веб-интерфейс.'
+    'IPv4': 'Оборудование должно поддерживать статическую и динамическую маршрутизацию IPv4, фрагментацию пакетов, ICMP-запросы. Проверяется корректность назначения IP-адреса и доступность шлюза по умолчанию.',
+    'IPv6': 'Оборудование должно поддерживать IPv6-адресацию, статическую маршрутизацию, Neighbor Discovery (NDP), SLAAC. Проверяется назначение IPv6-адреса и доступность IPv6-шлюза.',
+    'ARP': 'Оборудование должно уметь разрешать IP-адреса в MAC-адреса через ARP-запросы и ответы. Проверяется корректность ARP-таблицы, наличие записей для соседних устройств.',
+    'VLAN': 'Оборудование должно поддерживать создание и управление VLAN (802.1Q), тегирование трафика, изоляцию широковещательных доменов. Проверяется создание VLAN и назначение портов в VLAN.',
+    'QinQ': 'Оборудование должно поддерживать двойное VLAN-тегирование (QinQ) для провайдерских сетей. Проверяется прохождение трафика с двумя тегами VLAN через магистральный порт.',
+    'ICMP-PING': 'Оборудование должно отвечать на ICMP Echo Request (ping) и генерировать ICMP Echo Reply. Проверяется доступность IP-адреса по команде ping.',
+    'TRACE-ROUTE': 'Оборудование должно корректно обрабатывать ICMP Time Exceeded и UDP-пакеты с TTL=1. Проверяется работа traceroute до удалённого узла.',
+    'ICMPv6': 'Оборудование должно поддерживать ICMP для IPv6, включая Neighbor Discovery (NDP) и MLD. Проверяется работа ping6 и обнаружение соседей.',
+    'DHCP': 'Оборудование должно корректно работать как DHCP-клиент или DHCP-сервер (в зависимости от режима). Проверяется получение IP-адреса от DHCP-сервера.',
+    'DHCP-SERVER': 'Оборудование должно уметь раздавать IP-адреса устройствам в сети. Проверяется назначение IP-адреса клиенту из пула DHCP-сервера.',
+    'DHCP-Client': 'Оборудование должно уметь получать IP-адрес от DHCP-сервера автоматически. Проверяется получение IP-адреса, маски, шлюза и DNS.',
+    'DHCPv6': 'Оборудование должно поддерживать получение IPv6-адресов через DHCPv6. Проверяется назначение IPv6-адреса клиенту.',
+    'DHCP-RELAY': 'Оборудование должно уметь перенаправлять DHCP-запросы в другую подсеть (DHCP Relay). Проверяется получение IP-адреса клиентом через Relay.',
+    'DHCP-Snooping': 'Оборудование должно уметь фильтровать недоверенные DHCP-ответы (DHCP Snooping). Проверяется блокировка подмены DHCP-сервера на порту.',
+    'DHCP IP Anti-Spoofing': 'Оборудование должно уметь проверять соответствие IP и MAC-адреса (IP Source Guard). Проверяется блокировка трафика с неразрешённых IP-адресов.',
+    'RIP': 'Оборудование должно поддерживать маршрутизацию по протоколу RIP (v1/v2). Проверяется обмен маршрутами между соседними маршрутизаторами.',
+    'IGMP': 'Оборудование должно поддерживать управление мультикаст-группами через IGMP. Проверяется подписка устройства на мультикаст-группу.',
+    'IGMP-SNOOPING': 'Оборудование должно уметь анализировать IGMP-запросы и отправлять мультикаст-трафик только на нужные порты. Проверяется фильтрация мультикаст-трафика.',
+    'IGMP FAST Leave': 'Оборудование должно уметь мгновенно обрабатывать выход из мультикаст-группы. Проверяется скорость прекращения трансляции потока трафика для группы multicast при получении IGMP-пакета Leave.',
+    'IGMP-PROXY': 'Оборудование должно уметь объединять мультикаст-запросы от разных клиентов (IGMP Proxy). Проверяется уменьшение нагрузки на вышестоящее оборудование.',
+    'IGMP V3': 'Устройство должно корректно обрабатывать и формировать пакеты IGMP версии 3 в рамках функционала Snooping или Proxy, а также взаимодействовать с потребителями по протоколу IGMP версии 2 либо 3 в зависимости от версии, используемой потребителями.',
+    'UDP': 'Оборудование должно корректно обрабатывать UDP-пакеты. Проверяется передача и приём UDP-пакетов через порты.',
+    'TCP': 'Оборудование должно корректно устанавливать TCP-соединения и поддерживать подтверждение доставки. Проверяется установка TCP-сессии и передача данных.',
+    'RJ45': 'Оборудование должно обеспечивать работу порта RJ45 на скорости 10/100/1000 Мбит/с с поддержкой Auto-Negotiation и MDI/MDIX. Проверяется на L2 (коммутация) и L3 (маршрутизация).',
+    'SFP': 'Оборудование должно поддерживать установку оптических трансиверов SFP/SFP+/QSFP и работу на скоростях 1G/10G/100G. Проверяется на L2 (коммутация) и L3 (маршрутизация).',
+    'SNMP': 'Оборудование должно отвечать на SNMP-запросы и отдавать MIB-данные. Проверяется чтение системной информации через SNMP (версия v1/v2/v3).',
+    'HTTP-HTTPS': 'Оборудование должно обеспечивать работу веб-сервера по протоколам HTTP и HTTPS для доступа к интерфейсу управления.',
+    'WEB': 'Оборудование должно предоставлять веб-интерфейс для управления. Проверяется авторизация, изменение настроек, обновление прошивки, просмотр статуса и диагностика.'
 };
 
-/**
- * Возвращает подсказку для протокола.
- * Если пользователь добавил своё описание - использует его.
- */
 function getHint(name, desc) {
     if (desc && desc.trim()) return desc;
     return protocolHints[name] || '📖 Пользовательский параметр. Добавьте описание.';
 }
 
 // =====================================================
-// 4. ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+// ИНИЦИАЛИЗАЦИЯ
 // =====================================================
 document.addEventListener('DOMContentLoaded', () => {
-    loadProtocols();               // Загружаем словарь (из localStorage или базовый)
-    initEventListeners();          // Навешиваем обработчики событий
-    updateStats();                 // Обновляем статистику (0/0/0%)
-    initTheme();                   // Инициализируем тему
-    
-    // Устанавливаем сегодняшнюю дату в поле "Дата тестирования"
+    loadProtocols();
+    initEventListeners();
+    updateStats();
+    initTheme();
     const testDateInput = document.getElementById('testDate');
     if (testDateInput) testDateInput.valueAsDate = new Date();
 });
 
-// =====================================================
-// 5. ТЁМНАЯ ТЕМА
-// =====================================================
 function initTheme() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -118,7 +84,7 @@ function toggleTheme() {
 }
 
 // =====================================================
-// 6. ЗАГРУЗКА СЛОВАРЯ ПРОТОКОЛОВ
+// ЗАГРУЗКА СЛОВАРЯ ПРОТОКОЛОВ (28 протоколов)
 // =====================================================
 function loadProtocols() {
     const saved = localStorage.getItem('protocolsDictionary');
@@ -126,69 +92,70 @@ function loadProtocols() {
         const savedData = JSON.parse(saved);
         protocols = savedData.map(p => ({
             id: p.id, name: p.name, keywords: p.keywords, description: p.description || '',
+            operation: p.operation || '', normDoc: p.normDoc || '',
+            active: p.active !== undefined ? p.active : true,
             found: false, foundKeywords: []
         }));
     } else {
         protocols = [
             // ----- Базовые протоколы -----
-            { id: 1, name: 'IP', keywords: ['IPV4','IP','Internet Protocol'] },
-            { id: 2, name: 'IPv6', keywords: ['IPv6','IPV6','Internet Protocol version 6','IP next generation','IPng'] },
-            { id: 3, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'] },
-            { id: 4, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"] },
-            { id: 5, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'] },
-            { id: 6, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping'] },
-            { id: 7, name: 'ICMPv6', keywords: ['ICMPv6','ICMP version 6','Neighbor Discovery','MLD','Multicast Listener Discovery'] },
-            
-            // ----- DHCP и его подпротоколы -----
-            { id: 8, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'] },
-            { id: 9, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'] },
-            { id: 10, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'] },
-            { id: 11, name: 'DHCPv6', keywords: ['DHCPv6','DHCP version 6','DHCP for IPv6','IPv6 DHCP'] },
-            { id: 12, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'] },
-            { id: 13, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'] },
-            { id: 14, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'] },
-            
+            { id: 1, name: 'IPv4', keywords: ['IP', 'Internet Protocol', 'IPv4', 'IP адрес', 'IP address'], operation: '№57', normDoc: 'СТБ 2156 п.5.3.1.1', active: true },
+            { id: 2, name: 'IPv6', keywords: ['IPv6','IPV6','Internet Protocol version 6','IP next generation','IPng'], operation: '№57а', normDoc: 'СТБ 2156 п.5.3.1.2', active: true },
+            { id: 3, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'], operation: '№59', normDoc: 'СТБ 2156 п.5.3.5.9', active: true },
+            { id: 4, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"], operation: '№44', normDoc: 'СТБ 2156 п.5.3.5.2', active: true },
+            { id: 5, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'], operation: '№44 (п.3)', normDoc: 'СТБ 2156 п.5.3.5.3', active: true },
+            { id: 6, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping', 'type 0', 'type 8'], operation: '№35 (п.2)', normDoc: 'СТБ 2156 п.5.3.1.3', active: true },
+            { id: 7, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert', 'type 11'], operation: '№35 (п.4)', normDoc: 'СТБ 2156 п.5.3.1.3', active: true },
+            { id: 8, name: 'ICMPv6', keywords: ['ICMPv6','ICMP version 6','Neighbor Discovery','MLD','Multicast Listener Discovery'], operation: '№35а (п.3-4)', normDoc: 'СТБ 2156 п.5.3.1.4', active: true },
+
+            // ----- DHCP и подпротоколы -----
+            { id: 9, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'], operation: '№34', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+            { id: 10, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'], operation: '№34 (п.5)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+            { id: 11, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'], operation: '№34 (п.6)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+            { id: 12, name: 'DHCPv6', keywords: ['DHCPv6','DHCP version 6','DHCP for IPv6','IPv6 DHCP'], operation: '№34', normDoc: 'СТБ 2156 п.5.3.3.11', active: true },
+            { id: 13, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'], operation: '№34 (п.2)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+            { id: 14, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'], operation: '№34 (п.3)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+            { id: 15, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'], operation: '№34 (п.4)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+
             // ----- RIP и IGMP -----
-            { id: 15, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'] },
-            { id: 16, name: 'IGMP ATTENTION', keywords: ['IGMP', 'multicast'] },
-            { id: 17, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'] },
-            { id: 18, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'] },
-            { id: 19, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'] },
-            { id: 20, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3'] },
-            
+            { id: 16, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'], operation: '№60', normDoc: 'СТБ 2156 п.5.3.3.16', active: true },
+            { id: 17, name: 'IGMP', keywords: ['IGMP', 'multicast'], operation: '№61', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+            { id: 18, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'], operation: '№61 (п.3)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+            { id: 19, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'], operation: '№61 (п.4)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+            { id: 20, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'], operation: '№61 (п.2)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+            { id: 21, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3'], operation: '№61 (п.5)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+
             // ----- Транспортные протоколы -----
-            { id: 21, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'] },
-            { id: 22, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'] },
-            
+            { id: 22, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'], operation: '№58', normDoc: 'СТБ 2156 п.5.3.2.1', active: true },
+            { id: 23, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'], operation: '№58', normDoc: 'СТБ 2156 п.5.3.2.2', active: true },
+
             // ----- Диагностика и оборудование -----
-            { id: 23, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert'] },
-            { id: 24, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'] },
-            { id: 25, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', 'fiber'] },
-            { id: 26, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3'] },
-            { id: 27, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS', 'WEB', 'ВЕБ', 'ВЭБ'] },
-            { id: 28, name: 'WEB', keywords: ['HTTP','HTTPS','WEB'] }
+            { id: 24, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'], operation: '№2', normDoc: 'СТБ 2156 п.5.4.1.1 (L2); п.5.4.1.2 (L3)', active: true },
+            { id: 25, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', '100g', 'fiber', 'optical', 'QSFP', 'QSFP+'], operation: '№2', normDoc: 'СТБ 2156 п.5.4.1.1 (L2); п.5.4.1.2 (L3)', active: true },
+            { id: 26, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3', 'TRAP', 'MIB'], operation: '№3 (п.2-7): вкл/выкл/настройка порта, выдача информации о конфигурации, о системе (версия ПО), о статусе портов, сообщения TRAP, информация о MIB', normDoc: 'СТБ 2156 п.5.5.3; 02.МИ.038 п.3.3.12', active: true },
+            { id: 27, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS'], operation: '№73 (базовый)', normDoc: 'СТБ 2156 п.5.5.2', active: true },
+            { id: 28, name: 'WEB', keywords: ['WEB', 'web interface', 'gui', 'веб интерфейс', 'eweb'], operation: '№73 (п.2-11): вход по логину, смена пароля, обновление прошивки, просмотр информации о модели, настройка интерфейса, просмотр конфигураций, диагностика, настройка аккаунтов, просмотр статуса, история вызовов', normDoc: 'СТБ 2156 п.5.5.2', active: true }
         ];
     }
     updateStats();
     renderProtocolsGrid();
 }
 
-/**
- * Сохраняет текущий словарь в localStorage.
- * Это позволяет сохранить добавленные пользователем протоколы.
- */
 function saveProtocols() {
-    const toSave = protocols.map(p => ({ 
-        id: p.id, 
-        name: p.name, 
-        keywords: p.keywords, 
-        description: p.description || '' 
+    const toSave = protocols.map(p => ({
+        id: p.id,
+        name: p.name,
+        keywords: p.keywords,
+        description: p.description || '',
+        operation: p.operation || '',
+        normDoc: p.normDoc || '',
+        active: p.active !== undefined ? p.active : true
     }));
     localStorage.setItem('protocolsDictionary', JSON.stringify(toSave));
 }
 
 // =====================================================
-// 7. ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЬСКОГО ПРОТОКОЛА
+// ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЬСКОГО ПРОТОКОЛА
 // =====================================================
 function openAddModal() {
     document.getElementById('addProtocolModal').classList.remove('hidden');
@@ -205,26 +172,29 @@ function addProtocol() {
     const name = document.getElementById('newProtocolName').value.trim();
     const keywordsStr = document.getElementById('newProtocolKeywords').value.trim();
     const desc = document.getElementById('newProtocolDesc').value.trim();
-    
+
     if (!name) { alert('Введите название'); return; }
     if (!keywordsStr) { alert('Введите ключевые слова'); return; }
-    if (protocols.some(p => p.name.toLowerCase() === name.toLowerCase())) { 
-        alert('Такой параметр уже есть'); 
-        return; 
+    if (protocols.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        alert('Такой параметр уже есть');
+        return;
     }
-    
+
     const keywords = keywordsStr.split(',').map(k => k.trim()).filter(k => k);
     const newId = Math.max(...protocols.map(p => p.id), 0) + 1;
-    
-    protocols.push({ 
-        id: newId, 
-        name: name, 
-        keywords: keywords, 
-        description: desc, 
-        found: false, 
-        foundKeywords: [] 
+
+    protocols.push({
+        id: newId,
+        name: name,
+        keywords: keywords,
+        description: desc,
+        operation: '',
+        normDoc: '',
+        active: true,
+        found: false,
+        foundKeywords: []
     });
-    
+
     saveProtocols();
     closeAddModal();
     renderProtocolsGrid();
@@ -233,7 +203,7 @@ function addProtocol() {
 }
 
 // =====================================================
-// 8. УДАЛЕНИЕ ВСЕХ ПОЛЬЗОВАТЕЛЬСКИХ ПРОТОКОЛОВ
+// УДАЛЕНИЕ ВСЕХ ПОЛЬЗОВАТЕЛЬСКИХ ПРОТОКОЛОВ
 // =====================================================
 function deleteAllUserProtocols() {
     const userProtocols = protocols.filter(p => p.id > 28);
@@ -252,13 +222,11 @@ function deleteAllUserProtocols() {
 }
 
 // =====================================================
-// 9. ОЧИСТКА ТЕКСТА ОТ "МУСОРА" (ССЫЛКИ, IP, HTML-ТЕГИ)
+// ОЧИСТКА ТЕКСТА
 // =====================================================
 function cleanText(text) {
     if (!text) return '';
     let cleaned = text;
-    
-    // Полностью удаляем все ссылки
     cleaned = cleaned.replace(/https?:\/\/[^\s<>"'\]]+/gi, '');
     cleaned = cleaned.replace(/www\.[^\s<>"'\]]+/gi, '');
     cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/gi, '$1');
@@ -266,59 +234,51 @@ function cleanText(text) {
     cleaned = cleaned.replace(/\b[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?:\/[^\s]*)?\b/gi, '');
     cleaned = cleaned.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '');
     cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '');
-    
-    // Убираем http/https как отдельные слова
     cleaned = cleaned.replace(/\bhttps?\b/gi, '');
-    
-    // Оставляем только буквы, цифры, пробелы, дефисы, точки
     cleaned = cleaned.replace(/[^\w\s\u0400-\u04FF\-\.]/g, ' ');
     cleaned = cleaned.replace(/\s+/g, ' ');
-    
     return cleaned.trim();
 }
 
-// =====================================================
-// 10. ЭКРАНИРОВАНИЕ ДЛЯ REGEXP
-// =====================================================
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // =====================================================
-// 11. ПОДСВЕТКА НАЙДЕННЫХ СЛОВ В ТЕКСТЕ
+// ПОДСВЕТКА
 // =====================================================
 function showHighlightedText() {
     if (!originalText || originalText.trim() === '') {
         showNotification('Нет текста для подсветки');
         return;
     }
-    
     const highlightSection = document.getElementById('highlightSection');
     const container = document.getElementById('highlightedText');
-    
     if (!highlightSection || !container) return;
-    
-    // Собираем все найденные ключевые слова
+
     const foundKeywords = [];
     protocols.forEach(p => {
         if (p.found && p.foundKeywords) {
-            p.foundKeywords.forEach(kw => {
-                foundKeywords.push(kw.toLowerCase());
-            });
+            p.foundKeywords.forEach(kw => foundKeywords.push(kw.toLowerCase()));
         }
     });
-    
+
     const uniqueKeywords = [...new Set(foundKeywords)];
     uniqueKeywords.sort((a, b) => b.length - a.length);
-    
-    let highlighted = escapeHtml(originalText);
-    
-    // Подсвечиваем каждое найденное слово
-    uniqueKeywords.forEach(kw => {
-        const regex = new RegExp(`(${escapeRegExp(kw)})`, 'gi');
-        highlighted = highlighted.replace(regex, `<span class="highlight">$1</span>`);
-    });
-    
+
+    // Разбиваем текст на слова
+    const words = originalText.split(/\s+/);
+
+    // Подсвечиваем только те слова, которые полностью совпадают с ключевыми
+    const highlighted = words.map(word => {
+        const wordLower = word.toLowerCase();
+        const cleanWord = wordLower.replace(/[.,!?;:()\[\]{}"'`~@#№$%^&*]/g, '');
+        if (uniqueKeywords.includes(cleanWord)) {
+            return `<span class="highlight">${escapeHtml(word)}</span>`;
+        }
+        return escapeHtml(word);
+    }).join(' ');
+
     container.innerHTML = highlighted;
     highlightSection.classList.remove('hidden');
 }
@@ -328,63 +288,39 @@ function hideHighlightedText() {
 }
 
 // =====================================================
-// 12. АНАЛИЗ ТЕКСТА (ПОИСК ПРОТОКОЛОВ)
+// АНАЛИЗ ТЕКСТА
 // =====================================================
 function analyzeText(text) {
-    if (!text || !text.trim()) { 
-        showNotification('Нет текста для анализа'); 
-        return; 
+    if (!text || !text.trim()) {
+        showNotification('Нет текста для анализа');
+        return;
     }
-    
-    // Сохраняем исходный текст для подсветки
     originalText = text;
-    
-    // Очищаем текст от мусора
     let clean = cleanText(text);
     const lowerText = clean.toLowerCase();
-    
-    // Разбиваем на слова для точного поиска
+
+    // Разбиваем текст на отдельные слова
     const words = lowerText.split(/\s+/).filter(w => w.length > 0);
-    
-    // Проверяем каждый протокол из словаря
+
     protocols.forEach(p => {
         p.found = false;
         p.foundKeywords = [];
-        
         for (const kw of p.keywords) {
             const lowerKw = kw.toLowerCase();
-            
-            // Пропускаем явные ссылки
-            if (lowerKw.includes('http') || lowerKw.includes('www')) {
-                continue;
-            }
-            
-            // Короткие слова (до 5 символов) — ищем точное совпадение
-            if (lowerKw.length <= 5) {
-                if (words.some(word => word === lowerKw)) {
-                    p.found = true;
-                    if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
-                }
-            } 
-            // Длинные слова — ищем вхождение с границами
-            else {
-                const regex = new RegExp(`\\b${escapeRegExp(lowerKw)}\\b`, 'i');
-                if (regex.test(clean)) {
-                    p.found = true;
-                    if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
-                }
+            if (lowerKw.includes('http') || lowerKw.includes('www')) continue;
+
+            // Ищем ТОЧНОЕ совпадение с целым словом
+            if (words.some(word => word === lowerKw)) {
+                p.found = true;
+                if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
             }
         }
     });
-    
-    // Пытаемся извлечь информацию об оборудовании
+
     extractDeviceInfo(clean);
-    
-    // Автоматически переключаемся на "Найденные"
     currentFilter = 'found';
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.filter-btn[data-filter="found"]')?.classList.add('active');
-    
     renderProtocolsGrid();
     updateStats();
     const foundCount = protocols.filter(p => p.found).length;
@@ -392,39 +328,24 @@ function analyzeText(text) {
 }
 
 // =====================================================
-// 13. ИЗВЛЕЧЕНИЕ ДАННЫХ ОБ ОБОРУДОВАНИИ ИЗ ТЕКСТА
+// ИЗВЛЕЧЕНИЕ ДАННЫХ ОБ ОБОРУДОВАНИИ
 // =====================================================
 function extractDeviceInfo(text) {
     if (!text || text.trim() === '') return;
-    
-    let name = '';
-    let model = '';
-    let vendor = '';
-    
-    const nameMatch = text.match(/Device\s*[:;]\s*([^\n\r,]+)/i) || 
-                      text.match(/Оборудование\s*[:;]\s*([^\n\r,]+)/i) ||
-                      text.match(/Equipment\s*[:;]\s*([^\n\r,]+)/i);
+    let name = '', model = '', vendor = '';
+    const nameMatch = text.match(/Device\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Оборудование\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Equipment\s*[:;]\s*([^\n\r,]+)/i);
     if (nameMatch) name = nameMatch[1].trim();
-    
-    const modelMatch = text.match(/Model\s*[:;]\s*([^\n\r,]+)/i) || 
-                       text.match(/Модель\s*[:;]\s*([^\n\r,]+)/i) ||
-                       text.match(/Part\s*No\s*[:;]\s*([^\n\r,]+)/i);
+    const modelMatch = text.match(/Model\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Модель\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Part\s*No\s*[:;]\s*([^\n\r,]+)/i);
     if (modelMatch) model = modelMatch[1].trim();
-    
-    const vendorMatch = text.match(/Vendor\s*[:;]\s*([^\n\r,]+)/i) || 
-                        text.match(/Производитель\s*[:;]\s*([^\n\r,]+)/i) ||
-                        text.match(/Manufacturer\s*[:;]\s*([^\n\r,]+)/i);
+    const vendorMatch = text.match(/Vendor\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Производитель\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Manufacturer\s*[:;]\s*([^\n\r,]+)/i);
     if (vendorMatch) vendor = vendorMatch[1].trim();
-    
     const nameInput = document.getElementById('deviceName');
     const modelInput = document.getElementById('deviceModel');
     const vendorInput = document.getElementById('deviceVendor');
     const dateInput = document.getElementById('testDate');
-    
     if (nameInput && name) nameInput.value = name;
     if (modelInput && model) modelInput.value = model;
     if (vendorInput && vendor) vendorInput.value = vendor;
-    
     if (dateInput && !dateInput.value) {
         const today = new Date();
         dateInput.value = today.toISOString().slice(0, 10);
@@ -432,7 +353,7 @@ function extractDeviceInfo(text) {
 }
 
 // =====================================================
-// 14. СБРОС РЕЗУЛЬТАТОВ АНАЛИЗА
+// СБРОС РЕЗУЛЬТАТОВ
 // =====================================================
 function resetResults(keepText = false) {
     protocols.forEach(p => { p.found = false; p.foundKeywords = []; });
@@ -451,43 +372,55 @@ function resetResults(keepText = false) {
 function fullReset() { resetResults(false); }
 
 // =====================================================
-// 15. ОТОБРАЖЕНИЕ ПРОТОКОЛОВ В ВИДЕ КАРТОЧЕК
+// ОТОБРАЖЕНИЕ
 // =====================================================
 function renderProtocolsGrid() {
     const grid = document.getElementById('protocolsGrid');
     if (!grid) return;
     grid.innerHTML = '';
-    
+
     let filtered = protocols;
     if (currentFilter === 'found') filtered = protocols.filter(p => p.found);
     if (currentFilter === 'notFound') filtered = protocols.filter(p => !p.found);
-    
+
     if (filtered.length === 0) {
         grid.innerHTML = '<div class="empty-state">📭 Нет параметров для отображения</div>';
         return;
     }
-    
+
     filtered.forEach(p => {
         const card = document.createElement('div');
         card.className = `protocol-card ${p.found ? 'found' : ''}`;
         card.setAttribute('data-id', p.id);
-        
+
         const hint = getHint(p.name, p.description);
-        const foundHtml = p.foundKeywords?.length ? 
-            `<div class="protocol-details"><strong>🔍 Найдено по:</strong> ${escapeHtml(p.foundKeywords.join(', '))}</div>` : '';
-        
+        const foundHtml = p.foundKeywords?.length ?
+            `<div class="protocol-details"><strong>🔍 Найдено по:</strong> ${escapeHtml(p.foundKeywords.join(', '))}</div>` :
+            '';
+
+      const extraHtml = `
+    <div style="margin-top:8px; font-size:0.85em; color:var(--text-muted); border-top:1px solid var(--border-color); padding-top:8px; word-wrap:break-word; white-space:normal; max-width:100%;">
+        <div><strong>📋 Перечень операций:</strong> ${escapeHtml(p.operation || '-')}</div>
+        <div><strong>📄 Нормативный документ:</strong> ${escapeHtml(p.normDoc || '-')}</div>
+    </div>
+`;
+
         card.innerHTML = `
             <h4 style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
                 <span>${escapeHtml(p.name)}</span>
                 <span class="status ${p.found ? 'found' : 'not-found'}">${p.found ? '✓ Найден' : '✗ Не найден'}</span>
             </h4>
             <div class="keywords"><strong>📝 Ключевые слова:</strong><br>${escapeHtml(p.keywords.join(', '))}</div>
-            <div class="protocol-hint hidden" id="hint-${p.id}"><strong>💡 Подсказка:</strong><br>${escapeHtml(hint)}</div>
+            <div class="protocol-hint hidden" id="hint-${p.id}">
+                <strong>💡 Подсказка:</strong><br>${escapeHtml(hint)}
+                ${extraHtml}
+            </div>
             ${foundHtml}
         `;
+
         grid.appendChild(card);
     });
-    
+
     document.querySelectorAll('.protocol-card').forEach(card => {
         const id = card.getAttribute('data-id');
         const hintDiv = document.getElementById(`hint-${id}`);
@@ -500,17 +433,11 @@ function renderProtocolsGrid() {
     });
 }
 
-/**
- * Экранирование HTML-символов для безопасного вывода
- */
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
 }
 
-/**
- * Обновление статистики (найдено / всего / %)
- */
 function updateStats() {
     const found = protocols.filter(p => p.found).length;
     const total = protocols.length;
@@ -521,7 +448,7 @@ function updateStats() {
 }
 
 // =====================================================
-// 16. ЗАГРУЗКА ФАЙЛОВ (PDF / TXT)
+// ЗАГРУЗКА ФАЙЛОВ
 // =====================================================
 async function handleFileUpload(event) {
     const file = event.target.files[0];
@@ -548,22 +475,22 @@ async function parsePDF(file) {
         showLoading(false);
         analyzeText(pdfText);
         showNotification(`PDF загружен! ${pdf.numPages} страниц.`);
-    } catch(e) { 
-        showLoading(false); 
+    } catch(e) {
+        showLoading(false);
         if (e.message && e.message.includes('password')) {
-            alert('Файл защищён паролем. Пожалуйста, снимите защиту.');
+            alert('Файл защищён паролем. Снимите защиту.');
         } else {
-            alert('Не удалось прочитать PDF. Проверьте, что файл не повреждён.');
+            alert('Не удалось прочитать PDF. Проверьте файл.');
         }
     }
 }
 
 function parseText(file) {
     const reader = new FileReader();
-    reader.onload = e => { 
-        pdfText = e.target.result; 
-        analyzeText(pdfText); 
-        showNotification('Файл загружен'); 
+    reader.onload = e => {
+        pdfText = e.target.result;
+        analyzeText(pdfText);
+        showNotification('Файл загружен');
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -577,15 +504,15 @@ function parseManual() {
 }
 
 // =====================================================
-// 17. UI ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (уведомления, загрузка)
+// UI
 // =====================================================
 function showLoading(show) {
     const el = document.getElementById('pdfLoading');
     if (el) show ? el.classList.remove('hidden') : el.classList.add('hidden');
 }
 
-function updateProgress(p) { 
-    document.getElementById('progressText').textContent = `${p}%`; 
+function updateProgress(p) {
+    document.getElementById('progressText').textContent = `${p}%`;
 }
 
 function showNotification(msg) {
@@ -596,19 +523,16 @@ function showNotification(msg) {
     setTimeout(() => n.remove(), 3000);
 }
 
-// =====================================================
-// 18. ОТКРЫТИЕ/ЗАКРЫТИЕ МОДАЛЬНОГО ОКНА НАСТРОЙКИ ОТЧЁТА
-// =====================================================
-function openTemplateModal() { 
-    document.getElementById('templateModal').classList.remove('hidden'); 
+function openTemplateModal() {
+    document.getElementById('templateModal').classList.remove('hidden');
 }
 
-function closeTemplateModal() { 
-    document.getElementById('templateModal').classList.add('hidden'); 
+function closeTemplateModal() {
+    document.getElementById('templateModal').classList.add('hidden');
 }
 
 // =====================================================
-// 19. ГЕНЕРАЦИЯ DOCX-ОТЧЁТА
+// ГЕНЕРАЦИЯ DOCX-ОТЧЁТА
 // =====================================================
 function generateDocx() {
     try {
@@ -616,48 +540,36 @@ function generateDocx() {
         const model = document.getElementById('deviceModel')?.value || 'Не указано';
         const vendor = document.getElementById('deviceVendor')?.value || 'Не указано';
         const date = document.getElementById('testDate')?.value || new Date().toISOString().slice(0,10);
-        
-        const found = protocols.filter(p => p.found);
+        const found = protocols.filter(p => p.found === true && p.active === true);
         const percent = Math.round(found.length / protocols.length * 100);
-        
+
         const zip = new JSZip();
         zip.file("[Content_Types].xml", `<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
         zip.file("_rels/.rels", `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
         zip.file("word/_rels/document.xml.rels", `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
-        
+
         let foundRows = '';
         found.forEach((p, i) => {
-            const hint = getHint(p.name, p.description);
             foundRows += `<w:tr>
                 <w:tc><w:p><w:r><w:t>${i+1}</w:t></w:r></w:p></w:tc>
                 <w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(p.name)}</w:t></w:r></w:p></w:tc>
-                <w:tc><w:p><w:r><w:t>${escapeXml(hint)}</w:t></w:r></w:p></w:tc>
-                <w:tc><w:p><w:r><w:t>${p.foundKeywords ? p.foundKeywords.join(', ') : '-'}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:p><w:r><w:t>${escapeXml(p.operation || '-')}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:p><w:r><w:t>${escapeXml(p.normDoc || '-')}</w:t></w:r></w:p></w:tc>
             </w:tr>`;
         });
-        
+
         let color = percent >= 80 ? '16A34A' : (percent >= 60 ? 'EAB308' : (percent >= 40 ? 'F97316' : 'EF4444'));
-        
+
         const doc = `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>
         <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="44"/><w:color w:val="5B21B6"/></w:rPr><w:t>📊 ОТЧЕТ О ПОДДЕРЖКЕ ПАРАМЕТРОВ</w:t></w:r></w:p>
         <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="28"/><w:color w:val="8B5CF6"/></w:rPr><w:t>Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования</w:t></w:r></w:p>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
-        
+
         <w:tbl>
             <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
-                <w:tblBorders>
-                    <w:top w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:left w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:right w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/>
-                    <w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/>
-                </w:tblBorders>
+                <w:tblBorders><w:top w:val="single" w:sz="4" w:color="C4B5FD"/><w:left w:val="single" w:sz="4" w:color="C4B5FD"/><w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/><w:right w:val="single" w:sz="4" w:color="C4B5FD"/><w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/><w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/></w:tblBorders>
             </w:tblPr>
-            <w:tr>
-                <w:tc><w:tcW w:w="2500"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc>
-                <w:tc><w:tcW w:w="5500"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Значение</w:t></w:r></w:p></w:tc>
-            </w:tr>
+            <w:tr><w:tc><w:tcW w:w="2500"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc><w:tc><w:tcW w:w="5500"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Значение</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Наименование оборудования</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(name)}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Модель</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(model)}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Производитель</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(vendor)}</w:t></w:r></w:p></w:tc></w:tr>
@@ -665,85 +577,58 @@ function generateDocx() {
             <w:tr><w:tc><w:p><w:r><w:t>Дата отчета</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(new Date().toLocaleString('ru-RU'))}</w:t></w:r></w:p></w:tc></w:tr>
         </w:tbl>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
-        
+
         <w:tbl>
             <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
-                <w:tblBorders>
-                    <w:top w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:left w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:right w:val="single" w:sz="4" w:color="C4B5FD"/>
-                    <w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/>
-                    <w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/>
-                </w:tblBorders>
+                <w:tblBorders><w:top w:val="single" w:sz="4" w:color="C4B5FD"/><w:left w:val="single" w:sz="4" w:color="C4B5FD"/><w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/><w:right w:val="single" w:sz="4" w:color="C4B5FD"/><w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/><w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/></w:tblBorders>
             </w:tblPr>
-            <w:tr>
-                <w:tc><w:tcW w:w="4000"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Показатель</w:t></w:r></w:p></w:tc>
-                <w:tc><w:tcW w:w="4000"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Результат</w:t></w:r></w:p></w:tc>
-            </w:tr>
+            <w:tr><w:tc><w:tcW w:w="4000"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Показатель</w:t></w:r></w:p></w:tc><w:tc><w:tcW w:w="4000"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Результат</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Всего параметров</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${protocols.length}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Подтверждено</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:color w:val="16A34A"/></w:rPr><w:t>${found.length}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Процент соответствия</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="${color}"/></w:rPr><w:t>${percent}%</w:t></w:r></w:p></w:tc></w:tr>
         </w:tbl>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
-        
+
         ${found.length ? `<w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>✅ ПОДТВЕРЖДЕННЫЕ ПАРАМЕТРЫ</w:t></w:r></w:p><w:tbl>
             <w:tblPr><w:tblW w:w="9000"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="86EFAC"/><w:left w:val="single" w:sz="4" w:color="86EFAC"/><w:bottom w:val="single" w:sz="4" w:color="86EFAC"/><w:right w:val="single" w:sz="4" w:color="86EFAC"/><w:insideH w:val="single" w:sz="4" w:color="DCFCE7"/><w:insideV w:val="single" w:sz="4" w:color="DCFCE7"/></w:tblBorders></w:tblPr>
-            <w:tr><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>№</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Описание</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Найдено по</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>№</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Перечень операций</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Нормативный документ</w:t></w:r></w:p></w:tc></w:tr>
             ${foundRows}
-        </w:tbl>` : ''}
-        
+        </w:tbl>` : `<w:p><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>Нет подтверждённых параметров</w:t></w:r></w:p>`}
+
         <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>© 2026 ЦПЛ МЦК</w:t></w:r></w:p>
         </w:body></w:document>`;
         zip.file("word/document.xml", doc);
-        zip.generateAsync({ type: "blob" }).then(content => { 
-            saveAs(content, `Report_${model.replace(/[^a-z0-9]/gi, '_')}_${date}.docx`); 
-            closeTemplateModal(); 
-            showNotification('DOCX создан!'); 
+        zip.generateAsync({ type: "blob" }).then(content => {
+            saveAs(content, `Report_${model.replace(/[^a-z0-9]/gi, '_')}_${date}.docx`);
+            closeTemplateModal();
+            showNotification('DOCX создан!');
         });
     } catch(e) { alert('Ошибка: ' + e.message); }
 }
 
-function escapeXml(s) { 
-    if (!s) return ''; 
-    return s.toString().replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m)); 
+function escapeXml(s) {
+    if (!s) return '';
+    return s.toString().replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m] || m));
 }
 
 // =====================================================
-// 20. НАСТРОЙКА ОБРАБОТЧИКОВ СОБЫТИЙ
+// ОБРАБОТЧИКИ СОБЫТИЙ
 // =====================================================
 function initEventListeners() {
-    // --- Тема ---
     document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
-    
-    // --- Загрузка файлов ---
     document.getElementById('selectFileBtn')?.addEventListener('click', () => document.getElementById('fileInput').click());
     document.getElementById('fileInput')?.addEventListener('change', handleFileUpload);
-    
-    // --- Анализ текста ---
     document.getElementById('parseTextBtn')?.addEventListener('click', parseManual);
-    
-    // --- Экспорт ---
     document.getElementById('exportDocxBtn')?.addEventListener('click', openTemplateModal);
     document.getElementById('closeTemplateBtn')?.addEventListener('click', closeTemplateModal);
     document.getElementById('generateDocxBtn')?.addEventListener('click', generateDocx);
-    
-    // --- Сброс ---
     document.getElementById('resetAnalysisBtn')?.addEventListener('click', fullReset);
-    
-    // --- Подсветка ---
     document.getElementById('showHighlightBtn')?.addEventListener('click', showHighlightedText);
     document.getElementById('closeHighlightBtn')?.addEventListener('click', hideHighlightedText);
-    
-    // --- Добавление ---
     document.getElementById('addProtocolBtn')?.addEventListener('click', openAddModal);
     document.getElementById('closeAddModalBtn')?.addEventListener('click', closeAddModal);
     document.getElementById('confirmAddProtocolBtn')?.addEventListener('click', addProtocol);
-    
-    // --- Удаление ---
     document.getElementById('forceDeleteAllBtn')?.addEventListener('click', deleteAllUserProtocols);
-    
-    // --- Фильтры ---
     document.querySelectorAll('.filter-btn').forEach(btn => {
         if (btn.id === 'addProtocolBtn') return;
         btn.addEventListener('click', function() {
@@ -753,28 +638,16 @@ function initEventListeners() {
             renderProtocolsGrid();
         });
     });
-    
-    // --- Drag & Drop ---
     const drop = document.getElementById('dropArea');
     if (drop) {
-        drop.addEventListener('dragover', e => { 
-            e.preventDefault(); 
-            drop.style.background = '#f5f0ff'; 
-        });
-        drop.addEventListener('dragleave', () => { 
-            drop.style.background = '#faf7ff'; 
-        });
-        drop.addEventListener('drop', e => { 
-            e.preventDefault(); 
-            drop.style.background = '#faf7ff'; 
-            const f = e.dataTransfer.files[0]; 
-            if (f) parsePDF(f); 
-        });
+        drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.background = '#f5f0ff'; });
+        drop.addEventListener('dragleave', () => { drop.style.background = '#faf7ff'; });
+        drop.addEventListener('drop', e => { e.preventDefault(); drop.style.background = '#faf7ff'; const f = e.dataTransfer.files[0]; if (f) parsePDF(f); });
     }
 }
 
 // =====================================================
-// 21. ДИНАМИЧЕСКИЕ СТИЛИ
+// ДИНАМИЧЕСКИЕ СТИЛИ
 // =====================================================
 if (!document.querySelector('#dynamic-styles')) {
     const s = document.createElement('style');

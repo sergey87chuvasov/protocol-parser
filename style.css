@@ -749,3 +749,10 @@ body.dark-theme .highlighted-text .highlight-found {
     .stat-number { font-size: 2em; }
     .btn { padding: 12px 20px; font-size: 14px; }
 }
+
+.protocol-card .extra-info {
+    word-wrap: break-word;
+    white-space: normal;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
