@@ -3,7 +3,7 @@
  * ПРОГРАММА АВТОМАТИЧЕСКОГО АНАЛИЗА И ВЕРИФИКАЦИИ
  * ТЕХНИЧЕСКИХ ХАРАКТЕРИСТИК ТЕЛЕКОММУНИКАЦИОННОГО ОБОРУДОВАНИЯ
  * 
- * Версия: 2.8.0
+ * Версия: 2.9.0
  * =====================================================
  */
 
@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     const testDateInput = document.getElementById('testDate');
     if (testDateInput) testDateInput.valueAsDate = new Date();
+    initTooltips();
 });
 
 function initTheme() {
@@ -84,6 +85,30 @@ function toggleTheme() {
 }
 
 // =====================================================
+// ТУЛТИПЫ ДЛЯ КНОПОК
+// =====================================================
+function initTooltips() {
+    const tooltips = {
+        'selectFileBtn': 'Выберите PDF или TXT файл для анализа',
+        'parseTextBtn': 'Проанализировать вставленный текст',
+        'exportDocxBtn': 'Сформировать DOCX-отчёт',
+        'resetAnalysisBtn': 'Очистить все результаты анализа',
+        'forceDeleteAllBtn': 'Удалить все добавленные пользователем параметры',
+        'showHighlightBtn': 'Показать текст с подсветкой',
+        'closeHighlightBtn': 'Скрыть текст с подсветкой',
+        'addProtocolBtn': 'Добавить новый параметр',
+        'themeToggle': 'Переключить тему'
+    };
+
+    Object.keys(tooltips).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.setAttribute('title', tooltips[id]);
+        }
+    });
+}
+
+// =====================================================
 // ЗАГРУЗКА СЛОВАРЯ ПРОТОКОЛОВ (28 протоколов)
 // =====================================================
 function loadProtocols() {
@@ -98,44 +123,44 @@ function loadProtocols() {
         }));
     } else {
         protocols = [
-            // ----- Базовые протоколы -----
-            { id: 1, name: 'IPv4', keywords: ['IP', 'Internet Protocol', 'IPv4', 'IP адрес', 'IP address'], operation: '№57', normDoc: 'СТБ 2156 п.5.3.1.1', active: true },
-            { id: 2, name: 'IPv6', keywords: ['IPv6','IPV6','Internet Protocol version 6','IP next generation','IPng'], operation: '№57а', normDoc: 'СТБ 2156 п.5.3.1.2', active: true },
-            { id: 3, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'], operation: '№59', normDoc: 'СТБ 2156 п.5.3.5.9', active: true },
-            { id: 4, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"], operation: '№44', normDoc: 'СТБ 2156 п.5.3.5.2', active: true },
-            { id: 5, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'], operation: '№44 (п.3)', normDoc: 'СТБ 2156 п.5.3.5.3', active: true },
-            { id: 6, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping', 'type 0', 'type 8'], operation: '№35 (п.2)', normDoc: 'СТБ 2156 п.5.3.1.3', active: true },
-            { id: 7, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert', 'type 11'], operation: '№35 (п.4)', normDoc: 'СТБ 2156 п.5.3.1.3', active: true },
-            { id: 8, name: 'ICMPv6', keywords: ['ICMPv6','ICMP version 6','Neighbor Discovery','MLD','Multicast Listener Discovery'], operation: '№35а (п.3-4)', normDoc: 'СТБ 2156 п.5.3.1.4', active: true },
+    // ----- Базовые протоколы -----
+    { id: 1, name: 'IPv4', keywords: ['IP', 'Internet Protocol', 'IPv4', 'IP адрес', 'IP address'], operation: '№57', normDoc: 'СТБ 2156 п.5.3.1.1', active: true },
+    { id: 2, name: 'IPv6', keywords: ['IPv6','IPV6','Internet Protocol version 6','IP next generation','IPng'], operation: '№57а', normDoc: 'СТБ 2156 п.5.3.1.2', active: true },
+    { id: 3, name: 'ARP', keywords: ['ARP', 'Address Resolution Protocol','IPV4','IP'], operation: '№59', normDoc: 'СТБ 2156 п.5.3.5.9', active: true },
+    { id: 4, name: 'VLAN', keywords: ['VLAN', 'Virtual LAN', '802.1Q', "Vxlan"], operation: '№44', normDoc: 'СТБ 2156 п.5.3.5.2', active: true },
+    { id: 5, name: 'QinQ', keywords: ['QINQ', 'Q-IN-Q', 'Q in Q', 'Vlan stacking', '802.1ad'], operation: '№44 (п.3)', normDoc: 'СТБ 2156 п.5.3.5.3', active: true },
+    { id: 6, name: 'ICMP-PING', keywords: ['ICMP', 'Internet Control Message Protocol', ' ping', 'type 0', 'type 8'], operation: '№35 (п.2)', normDoc: 'СТБ 2156 п.5.3.1.3', active: true },
+    { id: 7, name: 'TRACE-ROUTE', keywords: ['traceroute', 'trace route', 'tracert', 'type 11'], operation: '№35 (п.4)', normDoc: 'СТБ 2156 п.5.3.1.3', active: true },
+    { id: 8, name: 'ICMPv6', keywords: ['ICMPv6','ICMP version 6','Neighbor Discovery','MLD','Multicast Listener Discovery'], operation: '№35а (п.3-4)', normDoc: 'СТБ 2156 п.5.3.1.4', active: true },
 
-            // ----- DHCP и подпротоколы -----
-            { id: 9, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'], operation: '№34', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
-            { id: 10, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'], operation: '№34 (п.5)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
-            { id: 11, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'], operation: '№34 (п.6)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
-            { id: 12, name: 'DHCPv6', keywords: ['DHCPv6','DHCP version 6','DHCP for IPv6','IPv6 DHCP'], operation: '№34', normDoc: 'СТБ 2156 п.5.3.3.11', active: true },
-            { id: 13, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'], operation: '№34 (п.2)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
-            { id: 14, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'], operation: '№34 (п.3)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
-            { id: 15, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'], operation: '№34 (п.4)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+    // ----- DHCP и подпротоколы -----
+    { id: 9, name: 'DHCP', keywords: ['DHCP', 'Dynamic Host Configuration Protocol', 'DHCP-сервер','DHCP-client', 'DHCP-клиент','BOOTP','Dynamic Ip Allocation'], operation: '№34', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+    { id: 10, name: 'DHCP-SERVER', keywords: ['DHCP-SERVER', 'DHCP SERVER', 'DHCP сервер', 'DHCP-сервер'], operation: '№34 (п.5)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+    { id: 11, name: 'DHCP-Client', keywords: ['DHCP-CLIENT', 'DHCP CLIENT', 'DHCP клиент', 'DHCP-клиент'], operation: '№34 (п.6)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+    { id: 12, name: 'DHCPv6', keywords: ['DHCPv6','DHCP version 6','DHCP for IPv6','IPv6 DHCP'], operation: '№34', normDoc: 'СТБ 2156 п.5.3.3.11', active: true },
+    { id: 13, name: 'DHCP-RELAY', keywords: ['DHCP-relay', 'dhcp relay'], operation: '№34 (п.2)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+    { id: 14, name: 'DHCP-Snooping', keywords: ['DHCP snooping', 'DHCP-snooping'], operation: '№34 (п.3)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
+    { id: 15, name: 'DHCP IP Anti-Spoofing', keywords: ['bind', 'source-guard', 'source guard', 'Binding'], operation: '№34 (п.4)', normDoc: 'СТБ 2156 п.5.3.3.10', active: true },
 
-            // ----- RIP и IGMP -----
-            { id: 16, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'], operation: '№60', normDoc: 'СТБ 2156 п.5.3.3.16', active: true },
-            { id: 17, name: 'IGMP', keywords: ['IGMP', 'multicast'], operation: '№61', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
-            { id: 18, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'], operation: '№61 (п.3)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
-            { id: 19, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'], operation: '№61 (п.4)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
-            { id: 20, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'], operation: '№61 (п.2)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
-            { id: 21, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3'], operation: '№61 (п.5)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+    // ----- RIP и IGMP -----
+    { id: 16, name: 'RIP', keywords: ['RIP', 'Routing Information Protocol'], operation: '№60', normDoc: 'СТБ 2156 п.5.3.3.16', active: true },
+    { id: 17, name: 'IGMP', keywords: ['IGMP', 'multicast'], operation: '№61', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+    { id: 18, name: 'IGMP-SNOOPING', keywords: ['IGMP-SNOOPING', 'IGMP SNOOPING', 'IGMP v1/v2/v3 Snooping'], operation: '№61 (п.3)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+    { id: 19, name: 'IGMP FAST Leave', keywords: ['IGMP FAST Leave'], operation: '№61 (п.4)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+    { id: 20, name: 'IGMP-PROXY', keywords: ['IGMP-PROXY', 'IGMP PROXY'], operation: '№61 (п.2)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
+    { id: 21, name: 'IGMP V3', keywords: ['IGMP V3','IGMP VERSION 3','IGMP VERSION 2, 3', 'IGMPv1/v2/v3'], operation: '№61 (п.5)', normDoc: 'СТБ 2156 п.5.3.1.7', active: true },
 
-            // ----- Транспортные протоколы -----
-            { id: 22, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'], operation: '№58', normDoc: 'СТБ 2156 п.5.3.2.1', active: true },
-            { id: 23, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'], operation: '№58', normDoc: 'СТБ 2156 п.5.3.2.2', active: true },
+    // ----- Транспортные протоколы -----
+    { id: 22, name: 'UDP', keywords: ['UDP', 'User Datagram Protocol', 'SNMP', 'DHCP'], operation: '№58', normDoc: 'СТБ 2156 п.5.3.2.1', active: true },
+    { id: 23, name: 'TCP', keywords: ['TCP', 'Transmission Control Protocol', 'TELNET', 'SSH', 'HTTP', 'HTTPS', 'WEB'], operation: '№58', normDoc: 'СТБ 2156 п.5.3.2.2', active: true },
 
-            // ----- Диагностика и оборудование -----
-            { id: 24, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'], operation: '№2', normDoc: 'СТБ 2156 п.5.4.1.1 (L2); п.5.4.1.2 (L3)', active: true },
-            { id: 25, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', '100g', 'fiber', 'optical', 'QSFP', 'QSFP+'], operation: '№2', normDoc: 'СТБ 2156 п.5.4.1.1 (L2); п.5.4.1.2 (L3)', active: true },
-            { id: 26, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3', 'TRAP', 'MIB'], operation: '№3 (п.2-7): вкл/выкл/настройка порта, выдача информации о конфигурации, о системе (версия ПО), о статусе портов, сообщения TRAP, информация о MIB', normDoc: 'СТБ 2156 п.5.5.3; 02.МИ.038 п.3.3.12', active: true },
-            { id: 27, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS'], operation: '№73 (базовый)', normDoc: 'СТБ 2156 п.5.5.2', active: true },
-            { id: 28, name: 'WEB', keywords: ['WEB', 'web interface', 'gui', 'веб интерфейс', 'eweb'], operation: '№73 (п.2-11): вход по логину, смена пароля, обновление прошивки, просмотр информации о модели, настройка интерфейса, просмотр конфигураций, диагностика, настройка аккаунтов, просмотр статуса, история вызовов', normDoc: 'СТБ 2156 п.5.5.2', active: true }
-        ];
+    // ----- Диагностика и оборудование -----
+    { id: 24, name: 'RJ45', keywords: ['RJ45','1000base-t','1000 base-t', 'ethernet', 'eth','copper'], operation: '№2', normDoc: 'СТБ 2156 п.5.4.1.1 (L2); п.5.4.1.2 (L3)', active: true },
+    { id: 25, name: 'SFP', keywords: ['SFP','SFP+','1000 base-t','1000base-x', '10g', '100g', 'fiber', 'optical', 'QSFP', 'QSFP+'], operation: '№2', normDoc: 'СТБ 2156 п.5.4.1.1 (L2); п.5.4.1.2 (L3)', active: true },
+    { id: 26, name: 'SNMP', keywords: ['SNMP', 'Simple Network Management Protocol', 'SNMP v1', 'SNMP v2', 'SNMP v3', 'TRAP', 'MIB'], operation: '№3 (п.2-7): вкл/выкл/настройка порта, выдача информации о конфигурации, о системе (версия ПО), о статусе портов, сообщения TRAP, информация о MIB', normDoc: 'СТБ 2156 п.5.5.3; 02.МИ.038 п.3.3.12', active: true },
+    { id: 27, name: 'HTTP-HTTPS', keywords: ['HTTP', 'Hypertext Transfer Protocol', 'HTTP Secure', 'SSL', 'TLS'], operation: '№73 (базовый)', normDoc: 'СТБ 2156 п.5.5.2', active: true },
+    { id: 28, name: 'WEB', keywords: ['WEB', 'web interface', 'gui', 'веб интерфейс', 'eweb'], operation: '№73 (п.2-11): вход по логину, смена пароля, обновление прошивки, просмотр информации о модели, настройка интерфейса, просмотр конфигураций, диагностика, настройка аккаунтов, просмотр статуса, история вызовов', normDoc: 'СТБ 2156 п.5.5.2', active: true }
+];
     }
     updateStats();
     renderProtocolsGrid();
@@ -266,10 +291,8 @@ function showHighlightedText() {
     const uniqueKeywords = [...new Set(foundKeywords)];
     uniqueKeywords.sort((a, b) => b.length - a.length);
 
-    // Разбиваем текст на слова
     const words = originalText.split(/\s+/);
 
-    // Подсвечиваем только те слова, которые полностью совпадают с ключевыми
     const highlighted = words.map(word => {
         const wordLower = word.toLowerCase();
         const cleanWord = wordLower.replace(/[.,!?;:()\[\]{}"'`~@#№$%^&*]/g, '');
@@ -299,7 +322,6 @@ function analyzeText(text) {
     let clean = cleanText(text);
     const lowerText = clean.toLowerCase();
 
-    // Разбиваем текст на отдельные слова
     const words = lowerText.split(/\s+/).filter(w => w.length > 0);
 
     protocols.forEach(p => {
@@ -309,7 +331,6 @@ function analyzeText(text) {
             const lowerKw = kw.toLowerCase();
             if (lowerKw.includes('http') || lowerKw.includes('www')) continue;
 
-            // Ищем ТОЧНОЕ совпадение с целым словом
             if (words.some(word => word === lowerKw)) {
                 p.found = true;
                 if (!p.foundKeywords.includes(kw)) p.foundKeywords.push(kw);
@@ -318,6 +339,7 @@ function analyzeText(text) {
     });
 
     extractDeviceInfo(clean);
+
     currentFilter = 'found';
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.filter-btn[data-filter="found"]')?.classList.add('active');
@@ -328,21 +350,38 @@ function analyzeText(text) {
 }
 
 // =====================================================
-// ИЗВЛЕЧЕНИЕ ДАННЫХ ОБ ОБОРУДОВАНИИ
+// ИЗВЛЕЧЕНИЕ ДАННЫХ ОБ ОБОРУДОВАНИИ (АВТОЗАПОЛНЕНИЕ)
 // =====================================================
 function extractDeviceInfo(text) {
     if (!text || text.trim() === '') return;
     let name = '', model = '', vendor = '';
-    const nameMatch = text.match(/Device\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Оборудование\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Equipment\s*[:;]\s*([^\n\r,]+)/i);
+
+    const nameMatch = text.match(/Device\s*[:;]\s*([^\n\r,]+)/i) ||
+                      text.match(/Оборудование\s*[:;]\s*([^\n\r,]+)/i) ||
+                      text.match(/Equipment\s*[:;]\s*([^\n\r,]+)/i) ||
+                      text.match(/Product\s*Name\s*[:;]\s*([^\n\r,]+)/i);
     if (nameMatch) name = nameMatch[1].trim();
-    const modelMatch = text.match(/Model\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Модель\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Part\s*No\s*[:;]\s*([^\n\r,]+)/i);
+
+    const modelMatch = text.match(/Model\s*[:;]\s*([^\n\r,]+)/i) ||
+                       text.match(/Модель\s*[:;]\s*([^\n\r,]+)/i) ||
+                       text.match(/Part\s*No\s*[:;]\s*([^\n\r,]+)/i) ||
+                       text.match(/P\/N\s*[:;]\s*([^\n\r,]+)/i) ||
+                       text.match(/Product\s*ID\s*[:;]\s*([^\n\r,]+)/i) ||
+                       text.match(/([A-Z]{2,5}-\d{4,5}[-A-Z\d]*)/i);
     if (modelMatch) model = modelMatch[1].trim();
-    const vendorMatch = text.match(/Vendor\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Производитель\s*[:;]\s*([^\n\r,]+)/i) || text.match(/Manufacturer\s*[:;]\s*([^\n\r,]+)/i);
+
+    const vendorMatch = text.match(/Vendor\s*[:;]\s*([^\n\r,]+)/i) ||
+                        text.match(/Производитель\s*[:;]\s*([^\n\r,]+)/i) ||
+                        text.match(/Manufacturer\s*[:;]\s*([^\n\r,]+)/i) ||
+                        text.match(/Brand\s*[:;]\s*([^\n\r,]+)/i) ||
+                        text.match(/\b(Cisco|Huawei|Juniper|Eltex|D-Link|HPE|Aruba)\b/i);
     if (vendorMatch) vendor = vendorMatch[1].trim();
+
     const nameInput = document.getElementById('deviceName');
     const modelInput = document.getElementById('deviceModel');
     const vendorInput = document.getElementById('deviceVendor');
     const dateInput = document.getElementById('testDate');
+
     if (nameInput && name) nameInput.value = name;
     if (modelInput && model) modelInput.value = model;
     if (vendorInput && vendor) vendorInput.value = vendor;
@@ -398,12 +437,12 @@ function renderProtocolsGrid() {
             `<div class="protocol-details"><strong>🔍 Найдено по:</strong> ${escapeHtml(p.foundKeywords.join(', '))}</div>` :
             '';
 
-      const extraHtml = `
-    <div style="margin-top:8px; font-size:0.85em; color:var(--text-muted); border-top:1px solid var(--border-color); padding-top:8px; word-wrap:break-word; white-space:normal; max-width:100%;">
-        <div><strong>📋 Перечень операций:</strong> ${escapeHtml(p.operation || '-')}</div>
-        <div><strong>📄 Нормативный документ:</strong> ${escapeHtml(p.normDoc || '-')}</div>
-    </div>
-`;
+        const extraHtml = `
+            <div style="margin-top:8px; font-size:0.85em; color:var(--text-muted); border-top:1px solid var(--border-color); padding-top:8px; word-wrap:break-word; white-space:normal; max-width:100%;">
+                <div><strong>📋 Перечень операций:</strong> ${escapeHtml(p.operation || '-')}</div>
+                <div><strong>📄 Нормативный документ:</strong> ${escapeHtml(p.normDoc || '-')}</div>
+            </div>
+        `;
 
         card.innerHTML = `
             <h4 style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
@@ -477,11 +516,14 @@ async function parsePDF(file) {
         showNotification(`PDF загружен! ${pdf.numPages} страниц.`);
     } catch(e) {
         showLoading(false);
-        if (e.message && e.message.includes('password')) {
-            alert('Файл защищён паролем. Снимите защиту.');
+        if (e.message && e.message.toLowerCase().includes('password')) {
+            alert('🔒 Файл защищён паролем. Снимите защиту и попробуйте снова.');
+        } else if (e.message && (e.message.toLowerCase().includes('invalid') || e.message.toLowerCase().includes('corrupt'))) {
+            alert('📄 Файл повреждён или не является PDF. Проверьте файл и попробуйте снова.');
         } else {
-            alert('Не удалось прочитать PDF. Проверьте файл.');
+            alert('❌ Неизвестная ошибка при чтении PDF. Попробуйте перезагрузить страницу или использовать другой файл.');
         }
+        console.error('Ошибка чтения PDF:', e);
     }
 }
 
@@ -491,6 +533,9 @@ function parseText(file) {
         pdfText = e.target.result;
         analyzeText(pdfText);
         showNotification('Файл загружен');
+    };
+    reader.onerror = () => {
+        alert('Не удалось прочитать текстовый файл. Проверьте кодировку (UTF-8).');
     };
     reader.readAsText(file, 'UTF-8');
 }
@@ -532,7 +577,7 @@ function closeTemplateModal() {
 }
 
 // =====================================================
-// ГЕНЕРАЦИЯ DOCX-ОТЧЁТА
+// ГЕНЕРАЦИЯ DOCX-ОТЧЁТА (С КОРОТКИМИ ПЕРЕЧНЯМИ И ТАБЛИЦАМИ НА ВСЮ ШИРИНУ)
 // =====================================================
 function generateDocx() {
     try {
@@ -548,12 +593,19 @@ function generateDocx() {
         zip.file("_rels/.rels", `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
         zip.file("word/_rels/document.xml.rels", `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>`);
 
+        // Короткие версии operation для отчёта (без расшифровки)
+        const operationShort = {
+            '26': '№3 (п.2-7)',
+            '28': '№73 (п.2-11)'
+        };
+
         let foundRows = '';
         found.forEach((p, i) => {
+            const op = operationShort[p.id] || p.operation || '-';
             foundRows += `<w:tr>
                 <w:tc><w:p><w:r><w:t>${i+1}</w:t></w:r></w:p></w:tc>
                 <w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(p.name)}</w:t></w:r></w:p></w:tc>
-                <w:tc><w:p><w:r><w:t>${escapeXml(p.operation || '-')}</w:t></w:r></w:p></w:tc>
+                <w:tc><w:p><w:r><w:t>${escapeXml(op)}</w:t></w:r></w:p></w:tc>
                 <w:tc><w:p><w:r><w:t>${escapeXml(p.normDoc || '-')}</w:t></w:r></w:p></w:tc>
             </w:tr>`;
         });
@@ -565,11 +617,23 @@ function generateDocx() {
         <w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:sz w:val="28"/><w:color w:val="8B5CF6"/></w:rPr><w:t>Программа автоматического анализа и верификации технических характеристик телекоммуникационного оборудования</w:t></w:r></w:p>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
 
+        <!-- Информация об оборудовании -->
         <w:tbl>
-            <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
-                <w:tblBorders><w:top w:val="single" w:sz="4" w:color="C4B5FD"/><w:left w:val="single" w:sz="4" w:color="C4B5FD"/><w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/><w:right w:val="single" w:sz="4" w:color="C4B5FD"/><w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/><w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/></w:tblBorders>
+            <w:tblPr>
+                <w:tblW w:w="100%" w:type="pct"/>
+                <w:tblBorders>
+                    <w:top w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:left w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:right w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/>
+                    <w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/>
+                </w:tblBorders>
             </w:tblPr>
-            <w:tr><w:tc><w:tcW w:w="2500"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc><w:tc><w:tcW w:w="5500"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Значение</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr>
+                <w:tc><w:tcW w:w="25%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="75%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Значение</w:t></w:r></w:p></w:tc>
+            </w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Наименование оборудования</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(name)}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Модель</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(model)}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Производитель</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${escapeXml(vendor)}</w:t></w:r></w:p></w:tc></w:tr>
@@ -578,20 +642,49 @@ function generateDocx() {
         </w:tbl>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
 
+        <!-- Статистика -->
         <w:tbl>
-            <w:tblPr><w:tblW w:w="8000" w:type="dxa"/>
-                <w:tblBorders><w:top w:val="single" w:sz="4" w:color="C4B5FD"/><w:left w:val="single" w:sz="4" w:color="C4B5FD"/><w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/><w:right w:val="single" w:sz="4" w:color="C4B5FD"/><w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/><w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/></w:tblBorders>
+            <w:tblPr>
+                <w:tblW w:w="100%" w:type="pct"/>
+                <w:tblBorders>
+                    <w:top w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:left w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:bottom w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:right w:val="single" w:sz="4" w:color="C4B5FD"/>
+                    <w:insideH w:val="single" w:sz="4" w:color="E9D8FF"/>
+                    <w:insideV w:val="single" w:sz="4" w:color="E9D8FF"/>
+                </w:tblBorders>
             </w:tblPr>
-            <w:tr><w:tc><w:tcW w:w="4000"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Показатель</w:t></w:r></w:p></w:tc><w:tc><w:tcW w:w="4000"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Результат</w:t></w:r></w:p></w:tc></w:tr>
+            <w:tr>
+                <w:tc><w:tcW w:w="50%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Показатель</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="50%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Результат</w:t></w:r></w:p></w:tc>
+            </w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Всего параметров</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>${protocols.length}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Подтверждено</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:color w:val="16A34A"/></w:rPr><w:t>${found.length}</w:t></w:r></w:p></w:tc></w:tr>
             <w:tr><w:tc><w:p><w:r><w:t>Процент соответствия</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="${color}"/></w:rPr><w:t>${percent}%</w:t></w:r></w:p></w:tc></w:tr>
         </w:tbl>
         <w:p><w:r><w:t> </w:t></w:r></w:p>
 
-        ${found.length ? `<w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>✅ ПОДТВЕРЖДЕННЫЕ ПАРАМЕТРЫ</w:t></w:r></w:p><w:tbl>
-            <w:tblPr><w:tblW w:w="9000"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="86EFAC"/><w:left w:val="single" w:sz="4" w:color="86EFAC"/><w:bottom w:val="single" w:sz="4" w:color="86EFAC"/><w:right w:val="single" w:sz="4" w:color="86EFAC"/><w:insideH w:val="single" w:sz="4" w:color="DCFCE7"/><w:insideV w:val="single" w:sz="4" w:color="DCFCE7"/></w:tblBorders></w:tblPr>
-            <w:tr><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>№</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Перечень операций</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Нормативный документ</w:t></w:r></w:p></w:tc></w:tr>
+        <!-- Таблица подтверждённых параметров (на всю ширину) -->
+        ${found.length ? `<w:p><w:r><w:rPr><w:b/><w:sz w:val="28"/></w:rPr><w:t>✅ ПОДТВЕРЖДЕННЫЕ ПАРАМЕТРЫ</w:t></w:r></w:p>
+        <w:tbl>
+            <w:tblPr>
+                <w:tblW w:w="100%" w:type="pct"/>
+                <w:tblBorders>
+                    <w:top w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:left w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:bottom w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:right w:val="single" w:sz="4" w:color="86EFAC"/>
+                    <w:insideH w:val="single" w:sz="4" w:color="DCFCE7"/>
+                    <w:insideV w:val="single" w:sz="4" w:color="DCFCE7"/>
+                </w:tblBorders>
+            </w:tblPr>
+            <w:tr>
+                <w:tc><w:tcW w:w="10%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>№</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="30%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Параметр</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="30%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Перечень операций</w:t></w:r></w:p></w:tc>
+                <w:tc><w:tcW w:w="30%"/><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Нормативный документ</w:t></w:r></w:p></w:tc>
+            </w:tr>
             ${foundRows}
         </w:tbl>` : `<w:p><w:r><w:rPr><w:color w:val="A78BFA"/><w:i/></w:rPr><w:t>Нет подтверждённых параметров</w:t></w:r></w:p>`}
 
